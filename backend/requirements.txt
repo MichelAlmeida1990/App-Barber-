@@ -31,6 +31,3 @@ google-auth-httplib2==0.2.0
 
 # Environment Variables
 python-dotenv==1.0.1
-
-# CORS
-python-cors==1.0.0
