@@ -28,8 +28,8 @@ class Settings(BaseSettings):
     
     # === BANCO DE DADOS ===
     # PostgreSQL via Supabase (gratuito)
-    # Usar Field para garantir que leia da variável de ambiente
-    database_url: str = os.getenv("DATABASE_URL", "postgresql://user:password@localhost:5432/barbershop_db")
+    # Pydantic Settings lê automaticamente de DATABASE_URL (uppercase)
+    database_url: str = "postgresql://user:password@localhost:5432/barbershop_db"
     database_echo: bool = False  # Log de queries SQL
     
     # === REDIS (CACHE) ===
@@ -151,7 +151,18 @@ def get_settings() -> Settings:
     Função para obter as configurações de forma cached.
     Usa lru_cache para evitar recriar o objeto a cada chamada.
     """
-    return Settings()
+    # Forçar leitura de DATABASE_URL diretamente se disponível
+    settings_obj = Settings()
+    
+    # Se DATABASE_URL estiver na variável de ambiente, usar ela
+    env_db_url = os.getenv("DATABASE_URL")
+    if env_db_url:
+        settings_obj.database_url = env_db_url
+        print(f"✅ DATABASE_URL lido da variável de ambiente: {env_db_url[:50]}...")
+    else:
+        print(f"⚠️ DATABASE_URL não encontrado na variável de ambiente, usando padrão")
+    
+    return settings_obj
 
 # Instância global das configurações
 settings = get_settings()
