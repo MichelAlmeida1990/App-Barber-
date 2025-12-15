@@ -134,13 +134,17 @@ async def create_appointment(
         if current_user.is_client:
             client = db.query(Client).filter(Client.user_id == current_user.id).first()
             if not client:
+                # Garantir que barbearia padrão existe
+                from app.core.database import ensure_default_barbershop
+                barbershop_id = ensure_default_barbershop(db)
+                
                 # Criar cliente automaticamente se não existir
                 client = Client(
                     user_id=current_user.id,
                     name=current_user.full_name,
                     email=current_user.email,
                     phone=current_user.phone,
-                    barbershop_id=1,  # ID padrão da barbearia
+                    barbershop_id=barbershop_id,
                     status=ClientStatus.ACTIVE
                 )
                 db.add(client)

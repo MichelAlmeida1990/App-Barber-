@@ -226,4 +226,77 @@ def reset_database():
         return True
     except Exception as e:
         logger.error(f"❌ Erro ao resetar banco: {e}")
-        return False 
+        return False
+
+def ensure_default_barbershop(db: Session) -> int:
+    """
+    Garante que existe uma barbearia padrão no banco.
+    Retorna o ID da barbearia (pode ser 1 ou outro ID se já existir).
+    """
+    from app.models.barbershop import Barbershop
+    from app.models.user import User, UserRole, UserStatus
+    from app.core.security import get_password_hash
+    
+    # Verificar se já existe barbearia com ID=1
+    barbershop = db.query(Barbershop).filter(Barbershop.id == 1).first()
+    
+    if barbershop:
+        return barbershop.id
+    
+    # Verificar se existe qualquer barbearia
+    any_barbershop = db.query(Barbershop).first()
+    if any_barbershop:
+        logger.info(f"⚠️ Barbearia padrão não tem ID=1, mas existe ID={any_barbershop.id}")
+        return any_barbershop.id
+    
+    # Não existe nenhuma barbearia, criar uma
+    logger.info("🔄 Criando barbearia padrão...")
+    
+    # Verificar se existe usuário admin
+    admin_user = db.query(User).filter(User.role == UserRole.ADMIN).first()
+    
+    if not admin_user:
+        logger.info("🔄 Criando usuário admin padrão...")
+        admin_user = User(
+            email="admin@barbearia.com",
+            hashed_password=get_password_hash("admin123"),
+            full_name="Administrador",
+            role=UserRole.ADMIN,
+            status=UserStatus.ACTIVE,
+            is_verified=True
+        )
+        db.add(admin_user)
+        db.commit()
+        db.refresh(admin_user)
+        logger.info("✅ Usuário admin criado")
+    
+    # Criar barbearia
+    opening_hours_data = {
+        "0": {"open": "08:00", "close": "18:00", "break_start": "12:00", "break_end": "13:00"},
+        "1": {"open": "08:00", "close": "18:00", "break_start": "12:00", "break_end": "13:00"},
+        "2": {"open": "08:00", "close": "18:00", "break_start": "12:00", "break_end": "13:00"},
+        "3": {"open": "08:00", "close": "18:00", "break_start": "12:00", "break_end": "13:00"},
+        "4": {"open": "08:00", "close": "18:00", "break_start": "12:00", "break_end": "13:00"},
+        "5": {"open": "08:00", "close": "18:00", "break_start": "12:00", "break_end": "13:00"},
+        "6": {"open": "09:00", "close": "14:00"}
+    }
+    
+    default_barbershop = Barbershop(
+        name="Barbearia Principal",
+        slug="barbearia-principal",
+        description="Barbearia principal do sistema",
+        email="contato@barbearia.com",
+        phone="(11) 99999-9999",
+        owner_id=admin_user.id,
+        is_active=True,
+        accepts_online_booking=True,
+        default_appointment_duration=30,
+        max_appointments_per_day=20,
+        opening_hours=opening_hours_data
+    )
+    db.add(default_barbershop)
+    db.commit()
+    db.refresh(default_barbershop)
+    
+    logger.info(f"✅ Barbearia padrão criada com ID={default_barbershop.id}")
+    return default_barbershop.id 

@@ -219,13 +219,17 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
         # Verificar se já existe um Client para este usuário
         existing_client = db.query(Client).filter(Client.user_id == db_user.id).first()
         if not existing_client:
+            # Garantir que barbearia padrão existe
+            from app.core.database import ensure_default_barbershop
+            barbershop_id = ensure_default_barbershop(db)
+            
             db_client = Client(
                 user_id=db_user.id,
                 name=db_user.full_name,
                 email=db_user.email,
                 phone=db_user.phone,
                 status=ClientStatus.ACTIVE,
-                barbershop_id=1  # ID padrão da barbearia
+                barbershop_id=barbershop_id
             )
             db.add(db_client)
             db.commit()
@@ -579,13 +583,17 @@ async def google_oauth(google_data: GoogleOAuthRequest, db: Session = Depends(ge
             if existing_user.role == UserRole.CLIENT:
                 existing_client = db.query(Client).filter(Client.user_id == existing_user.id).first()
                 if not existing_client:
+                    # Garantir que barbearia padrão existe
+                    from app.core.database import ensure_default_barbershop
+                    barbershop_id = ensure_default_barbershop(db)
+                    
                     db_client = Client(
                         user_id=existing_user.id,
                         name=existing_user.full_name,
                         email=existing_user.email,
                         phone=existing_user.phone,
                         status=ClientStatus.ACTIVE,
-                        barbershop_id=1  # ID padrão da barbearia
+                        barbershop_id=barbershop_id
                     )
                     db.add(db_client)
                     db.commit()
