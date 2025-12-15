@@ -47,7 +47,7 @@ export default function BarberSchedule() {
   const loadAppointments = async (token: string) => {
     try {
       const response = await fetch(
-        'http://localhost:8000/api/v1/appointments/barber-appointments',
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/appointments/barber-appointments`,
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -72,7 +72,7 @@ export default function BarberSchedule() {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `http://localhost:8000/api/v1/appointments/${appointmentId}/status-simple`,
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/appointments/${appointmentId}/status-simple`,
         {
           method: 'PUT',
           headers: {

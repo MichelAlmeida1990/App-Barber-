@@ -78,7 +78,7 @@ export default function AdminDashboard() {
       
       // Testar múltiplos endpoints
       const tests = [
-        { name: 'Health Check', call: () => fetch('http://127.0.0.1:8000/health') },
+        { name: 'Health Check', call: () => fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/health`) },
         { name: 'Clientes API', call: appointmentsAPI.test },
         { name: 'Analytics API', call: analyticsAPI.test }
       ];

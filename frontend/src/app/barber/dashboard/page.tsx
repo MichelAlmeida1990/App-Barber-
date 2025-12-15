@@ -71,7 +71,7 @@ export default function BarberDashboard() {
     setLoading(true);
     
     try {
-      const response = await fetch(`http://localhost:8000/api/v1/appointments/barber-appointments`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/appointments/barber-appointments`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

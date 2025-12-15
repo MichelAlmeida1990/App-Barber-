@@ -1,101 +1,103 @@
-import axios from 'axios';
+/**
+ * Configuração centralizada da API
+ * 
+ * Em desenvolvimento: usa http://localhost:8000
+ * Em produção: usa NEXT_PUBLIC_API_URL da variável de ambiente
+ */
 
-const API_BASE_URL = 'http://127.0.0.1:8000/api/v1';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_VERSION = 'v1';
+const API_PREFIX = `${API_BASE_URL}/api/${API_VERSION}`;
 
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
+/**
+ * URLs completas dos endpoints
+ */
+export const API_ENDPOINTS = {
+  // Auth
+  AUTH: {
+    LOGIN: `${API_PREFIX}/auth/login`,
+    REGISTER: `${API_PREFIX}/auth/register`,
+    GOOGLE: `${API_PREFIX}/auth/google`,
+    ME: `${API_PREFIX}/auth/me`,
+    CREATE_TEST_DATA: `${API_PREFIX}/auth/create-test-data`,
   },
-});
+  
+  // Appointments
+  APPOINTMENTS: {
+    BASE: `${API_PREFIX}/appointments`,
+    MY_APPOINTMENTS: `${API_PREFIX}/appointments/my-appointments`,
+    BARBER_APPOINTMENTS: `${API_PREFIX}/appointments/barber-appointments`,
+    STATUS_SIMPLE: (id: number) => `${API_PREFIX}/appointments/${id}/status-simple`,
+  },
+  
+  // Barbers
+  BARBERS: {
+    BASE: `${API_PREFIX}/barbers`,
+    LIST: `${API_PREFIX}/barbers/`,
+  },
+  
+  // Services
+  SERVICES: {
+    BASE: `${API_PREFIX}/services`,
+    LIST: `${API_PREFIX}/services/`,
+  },
+  
+  // Clients
+  CLIENTS: {
+    BASE: `${API_PREFIX}/clients`,
+  },
+  
+  // Commissions
+  COMMISSIONS: {
+    ALL: `${API_PREFIX}/commissions/all`,
+    SUMMARY: `${API_PREFIX}/commissions/summary`,
+    AUTO_GENERATE: `${API_PREFIX}/commissions/auto-generate`,
+  },
+  
+  // Barber Blocks
+  BARBER_BLOCKS: {
+    BASE: `${API_PREFIX}/barber-blocks`,
+    LIST: `${API_PREFIX}/barber-blocks`,
+    CREATE: `${API_PREFIX}/barber-blocks`,
+    UPDATE: (id: number) => `${API_PREFIX}/barber-blocks/${id}`,
+    DELETE: (id: number) => `${API_PREFIX}/barber-blocks/${id}`,
+    TOGGLE: (id: number) => `${API_PREFIX}/barber-blocks/${id}/toggle`,
+  },
+  
+  // Analytics
+  ANALYTICS: {
+    BASE: `${API_PREFIX}/analytics`,
+  },
+  
+  // Health
+  HEALTH: `${API_BASE_URL}/health`,
+} as const;
 
-// Interceptor para adicionar token de autenticação se disponível
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+/**
+ * Função helper para fazer requisições autenticadas
+ */
+export async function authenticatedFetch(
+  url: string,
+  options: RequestInit = {}
+): Promise<Response> {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  };
+  
   if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+    headers['Authorization'] = `Bearer ${token}`;
   }
-  return config;
-});
+  
+  return fetch(url, {
+    ...options,
+    headers,
+  });
+}
 
-// API de Autenticação
-export const authAPI = {
-  test: () => api.get('/auth/test'),
-};
-
-// API de Clientes
-export const clientsAPI = {
-  test: () => api.get('/clients/test'),
-  getAll: () => api.get('/clients'),
-  getById: (id: string) => api.get(`/clients/${id}`),
-  create: (data: any) => api.post('/clients', data),
-  update: (id: string, data: any) => api.put(`/clients/${id}`, data),
-  delete: (id: string) => api.delete(`/clients/${id}`),
-};
-
-// API de Barbeiros
-export const barbersAPI = {
-  test: () => api.get('/barbers/test'),
-  getAll: () => api.get('/barbers'),
-  getById: (id: string) => api.get(`/barbers/${id}`),
-  create: (data: any) => api.post('/barbers', data),
-  update: (id: string, data: any) => api.put(`/barbers/${id}`, data),
-  delete: (id: string) => api.delete(`/barbers/${id}`),
-};
-
-// API de Agendamentos
-export const appointmentsAPI = {
-  test: () => api.get('/appointments/test'),
-  getAll: () => api.get('/appointments'),
-  getById: (id: string) => api.get(`/appointments/${id}`),
-  create: (data: any) => api.post('/appointments', data),
-  update: (id: string, data: any) => api.put(`/appointments/${id}`, data),
-  delete: (id: string) => api.delete(`/appointments/${id}`),
-};
-
-// API de Serviços
-export const servicesAPI = {
-  test: () => api.get('/services/test'),
-  getAll: () => api.get('/services'),
-  getById: (id: string) => api.get(`/services/${id}`),
-  create: (data: any) => api.post('/services', data),
-  update: (id: string, data: any) => api.put(`/services/${id}`, data),
-  delete: (id: string) => api.delete(`/services/${id}`),
-};
-
-// API de Produtos
-export const productsAPI = {
-  test: () => api.get('/products/test'),
-  getAll: () => api.get('/products'),
-  getById: (id: string) => api.get(`/products/${id}`),
-  create: (data: any) => api.post('/products', data),
-  update: (id: string, data: any) => api.put(`/products/${id}`, data),
-  delete: (id: string) => api.delete(`/products/${id}`),
-};
-
-// API de Vendas
-export const salesAPI = {
-  test: () => api.get('/sales/test'),
-  getAll: () => api.get('/sales'),
-  getById: (id: string) => api.get(`/sales/${id}`),
-  create: (data: any) => api.post('/sales', data),
-  update: (id: string, data: any) => api.put(`/sales/${id}`, data),
-  delete: (id: string) => api.delete(`/sales/${id}`),
-};
-
-// API de Analytics
-export const analyticsAPI = {
-  test: () => api.get('/analytics/test'),
-  getDashboard: () => api.get('/analytics/dashboard'),
-  getRevenue: (period: string) => api.get(`/analytics/revenue?period=${period}`),
-  getClients: (period: string) => api.get(`/analytics/clients?period=${period}`),
-};
-
-// API de IA
-export const aiAPI = {
-  test: () => api.get('/ai/test'),
-  recommend: (data: any) => api.post('/ai/recommend', data),
-  analyze: (data: any) => api.post('/ai/analyze', data),
-};
-
-export default api; 
+/**
+ * Exportar URL base para uso em outros lugares
+ */
+export { API_BASE_URL, API_PREFIX };

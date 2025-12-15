@@ -77,7 +77,7 @@ export default function ClientDashboard() {
     setLoading(true);
     
     try {
-      const appointmentsResponse = await fetch('http://localhost:8000/api/v1/appointments/my-appointments', {
+      const appointmentsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/appointments/my-appointments`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -89,7 +89,7 @@ export default function ClientDashboard() {
         setAppointments(appointmentsData);
       }
 
-      const barbersResponse = await fetch('http://localhost:8000/api/v1/barbers/', {
+      const barbersResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/barbers/`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -101,7 +101,7 @@ export default function ClientDashboard() {
         setBarbers(barbersData);
       }
 
-      const servicesResponse = await fetch('http://localhost:8000/api/v1/services/', {
+      const servicesResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/services/`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

@@ -1,10 +1,11 @@
-from sqlalchemy import create_engine, MetaData
+from sqlalchemy import create_engine, MetaData, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import StaticPool
 import redis
 from typing import Generator
 import logging
+import json
 
 from app.core.config import settings
 
@@ -146,19 +147,9 @@ def init_database():
                     logger.info("✅ Usuário admin criado")
                 
                 # Criar barbearia padrão
-                default_barbershop = Barbershop(
-                    id=1,  # Forçar ID=1
-                    name="Barbearia Principal",
-                    slug="barbearia-principal",
-                    description="Barbearia principal do sistema",
-                    email="contato@barbearia.com",
-                    phone="(11) 99999-9999",
-                    owner_id=admin_user.id,
-                    is_active=True,
-                    accepts_online_booking=True,
-                    default_appointment_duration=30,
-                    max_appointments_per_day=20,
-                    opening_hours={
+                # Tentar criar com ID=1 usando SQL direto para PostgreSQL
+                try:
+                    opening_hours_json = json.dumps({
                         "0": {"open": "08:00", "close": "18:00", "break_start": "12:00", "break_end": "13:00"},
                         "1": {"open": "08:00", "close": "18:00", "break_start": "12:00", "break_end": "13:00"},
                         "2": {"open": "08:00", "close": "18:00", "break_start": "12:00", "break_end": "13:00"},
@@ -166,11 +157,45 @@ def init_database():
                         "4": {"open": "08:00", "close": "18:00", "break_start": "12:00", "break_end": "13:00"},
                         "5": {"open": "08:00", "close": "18:00", "break_start": "12:00", "break_end": "13:00"},
                         "6": {"open": "09:00", "close": "14:00"}
-                    }
-                )
-                db.add(default_barbershop)
-                db.commit()
-                logger.info("✅ Barbearia padrão criada com sucesso")
+                    })
+                    
+                    # Para PostgreSQL, usar INSERT com ON CONFLICT
+                    db.execute(text("""
+                        INSERT INTO barbershops (id, name, slug, description, email, phone, owner_id, is_active, accepts_online_booking, default_appointment_duration, max_appointments_per_day, opening_hours, created_at) 
+                        VALUES (1, 'Barbearia Principal', 'barbearia-principal', 'Barbearia principal do sistema', 'contato@barbearia.com', '(11) 99999-9999', :owner_id, true, true, 30, 20, :opening_hours::jsonb, NOW()) 
+                        ON CONFLICT (id) DO NOTHING
+                    """), {"owner_id": admin_user.id, "opening_hours": opening_hours_json})
+                    db.commit()
+                    logger.info("✅ Barbearia padrão criada com sucesso (ID=1)")
+                except Exception as sql_error:
+                    # Se falhar, criar normalmente usando ORM
+                    db.rollback()
+                    logger.warning(f"⚠️ Não foi possível forçar ID=1, criando normalmente: {sql_error}")
+                    default_barbershop = Barbershop(
+                        name="Barbearia Principal",
+                        slug="barbearia-principal",
+                        description="Barbearia principal do sistema",
+                        email="contato@barbearia.com",
+                        phone="(11) 99999-9999",
+                        owner_id=admin_user.id,
+                        is_active=True,
+                        accepts_online_booking=True,
+                        default_appointment_duration=30,
+                        max_appointments_per_day=20,
+                        opening_hours={
+                            "0": {"open": "08:00", "close": "18:00", "break_start": "12:00", "break_end": "13:00"},
+                            "1": {"open": "08:00", "close": "18:00", "break_start": "12:00", "break_end": "13:00"},
+                            "2": {"open": "08:00", "close": "18:00", "break_start": "12:00", "break_end": "13:00"},
+                            "3": {"open": "08:00", "close": "18:00", "break_start": "12:00", "break_end": "13:00"},
+                            "4": {"open": "08:00", "close": "18:00", "break_start": "12:00", "break_end": "13:00"},
+                            "5": {"open": "08:00", "close": "18:00", "break_start": "12:00", "break_end": "13:00"},
+                            "6": {"open": "09:00", "close": "14:00"}
+                        }
+                    )
+                    db.add(default_barbershop)
+                    db.commit()
+                    db.refresh(default_barbershop)
+                    logger.info(f"✅ Barbearia padrão criada com ID={default_barbershop.id}")
             else:
                 logger.info("✅ Barbearia padrão já existe")
         

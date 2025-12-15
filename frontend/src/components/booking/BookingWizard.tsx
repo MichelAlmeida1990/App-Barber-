@@ -126,7 +126,7 @@ export default function BookingWizard({ barbers, services, onClose, onComplete }
 
       console.log('Request body:', JSON.stringify(requestBody, null, 2));
 
-      const response = await fetch('http://localhost:8000/api/v1/appointments/', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/appointments/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

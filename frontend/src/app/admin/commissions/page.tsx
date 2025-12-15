@@ -49,7 +49,7 @@ export default function CommissionsPage() {
   const loadCommissions = useCallback(async () => {
     setLoading(true);
     try {
-      let url = 'http://127.0.0.1:8000/api/v1/commissions/all';
+      let url = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/commissions/all`;
       const params = new URLSearchParams();
       
       if (startDate) params.append('start_date', startDate);
@@ -78,7 +78,7 @@ export default function CommissionsPage() {
   // Carregar resumo
   const loadSummary = useCallback(async () => {
     try {
-      let url = 'http://127.0.0.1:8000/api/v1/commissions/summary';
+      let url = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/commissions/summary`;
       const params = new URLSearchParams();
       
       if (startDate) params.append('start_date', startDate);
@@ -107,7 +107,7 @@ export default function CommissionsPage() {
   // Gerar comissões automaticamente
   const generateCommissions = useCallback(async () => {
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/v1/commissions/auto-generate', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/commissions/auto-generate`, {
         method: 'POST'
       });
       
