@@ -1,0 +1,83 @@
+# 🔐 CREDENCIAIS DO RENDER - BARBERSHOP
+
+⚠️ ATENÇÃO: ESTE ARQUIVO CONTÉM INFORMAÇÕES SENSÍVEIS!
+NÃO COMPARTILHE PUBLICAMENTE!
+
+---
+
+## 📦 POSTGRESQL DATABASE
+
+**Nome do Banco:** barbershop_90l1
+**Usuário:** barbershop_90l1_user
+**Senha:** VzmrsrUHC6KWHXRLguFSPuHRbT8evSAW
+**Host:** dpg-d501ahbe5dus73apakcg-a
+**Database:** barbershop_90l1
+
+**URL Completa (Internal Database URL):**
+```
+postgresql://barbershop_90l1_user:VzmrsrUHC6KWHXRLguFSPuHRbT8evSAW@dpg-d501ahbe5dus73apakcg-a/barbershop_90l1
+```
+
+**Status:** ✅ Criado e Configurado
+
+---
+
+## 🔧 WEB SERVICE (BACKEND)
+
+**Nome:** (a ser criado)
+**URL:** (será gerada após deploy)
+
+### Variáveis de Ambiente:
+
+```env
+DATABASE_URL=postgresql://barbershop_90l1_user:VzmrsrUHC6KWHXRLguFSPuHRbT8evSAW@dpg-d501ahbe5dus73apakcg-a/barbershop_90l1
+
+SECRET_KEY=(gerar em https://djecrety.ir/)
+
+ENVIRONMENT=production
+
+FRONTEND_URL=https://seu-app.vercel.app
+(atualizar depois com URL da Vercel)
+
+GOOGLE_CLIENT_ID=(se tiver configurado)
+
+GOOGLE_CLIENT_SECRET=(se tiver configurado)
+```
+
+---
+
+## 🌐 VERCEL (FRONTEND)
+
+**URL:** (será gerada após deploy)
+
+### Variáveis de Ambiente:
+
+```env
+NEXT_PUBLIC_API_URL=(URL do backend do Render)
+
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=(se tiver configurado)
+```
+
+---
+
+## 📋 PRÓXIMOS PASSOS:
+
+### Passo Atual: ✅ Banco de Dados Criado
+
+### Próximo Passo: 🔜 Criar Web Service no Render
+
+1. No Render Dashboard → New + → Web Service
+2. Conectar repositório: App-Barber-
+3. Configurar:
+   - Name: barbershop-backend
+   - Root Directory: backend
+   - Build Command: pip install -r requirements.txt
+   - Start Command: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+4. Adicionar todas as variáveis de ambiente acima
+5. Deploy!
+
+---
+
+**Data de Criação:** ${new Date().toLocaleDateString('pt-BR')}
+**Última Atualização:** ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}
+
