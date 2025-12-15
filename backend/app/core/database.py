@@ -146,56 +146,57 @@ def init_database():
                     db.refresh(admin_user)
                     logger.info("✅ Usuário admin criado")
                 
-                # Criar barbearia padrão
-                # Tentar criar com ID=1 usando SQL direto para PostgreSQL
-                try:
-                    opening_hours_json = json.dumps({
-                        "0": {"open": "08:00", "close": "18:00", "break_start": "12:00", "break_end": "13:00"},
-                        "1": {"open": "08:00", "close": "18:00", "break_start": "12:00", "break_end": "13:00"},
-                        "2": {"open": "08:00", "close": "18:00", "break_start": "12:00", "break_end": "13:00"},
-                        "3": {"open": "08:00", "close": "18:00", "break_start": "12:00", "break_end": "13:00"},
-                        "4": {"open": "08:00", "close": "18:00", "break_start": "12:00", "break_end": "13:00"},
-                        "5": {"open": "08:00", "close": "18:00", "break_start": "12:00", "break_end": "13:00"},
-                        "6": {"open": "09:00", "close": "14:00"}
-                    })
-                    
-                    # Para PostgreSQL, usar INSERT com ON CONFLICT
-                    db.execute(text("""
-                        INSERT INTO barbershops (id, name, slug, description, email, phone, owner_id, is_active, accepts_online_booking, default_appointment_duration, max_appointments_per_day, opening_hours, created_at) 
-                        VALUES (1, 'Barbearia Principal', 'barbearia-principal', 'Barbearia principal do sistema', 'contato@barbearia.com', '(11) 99999-9999', :owner_id, true, true, 30, 20, :opening_hours::jsonb, NOW()) 
-                        ON CONFLICT (id) DO NOTHING
-                    """), {"owner_id": admin_user.id, "opening_hours": opening_hours_json})
-                    db.commit()
-                    logger.info("✅ Barbearia padrão criada com sucesso (ID=1)")
-                except Exception as sql_error:
-                    # Se falhar, criar normalmente usando ORM
-                    db.rollback()
-                    logger.warning(f"⚠️ Não foi possível forçar ID=1, criando normalmente: {sql_error}")
-                    default_barbershop = Barbershop(
-                        name="Barbearia Principal",
-                        slug="barbearia-principal",
-                        description="Barbearia principal do sistema",
-                        email="contato@barbearia.com",
-                        phone="(11) 99999-9999",
-                        owner_id=admin_user.id,
-                        is_active=True,
-                        accepts_online_booking=True,
-                        default_appointment_duration=30,
-                        max_appointments_per_day=20,
-                        opening_hours={
-                            "0": {"open": "08:00", "close": "18:00", "break_start": "12:00", "break_end": "13:00"},
-                            "1": {"open": "08:00", "close": "18:00", "break_start": "12:00", "break_end": "13:00"},
-                            "2": {"open": "08:00", "close": "18:00", "break_start": "12:00", "break_end": "13:00"},
-                            "3": {"open": "08:00", "close": "18:00", "break_start": "12:00", "break_end": "13:00"},
-                            "4": {"open": "08:00", "close": "18:00", "break_start": "12:00", "break_end": "13:00"},
-                            "5": {"open": "08:00", "close": "18:00", "break_start": "12:00", "break_end": "13:00"},
-                            "6": {"open": "09:00", "close": "14:00"}
-                        }
-                    )
-                    db.add(default_barbershop)
-                    db.commit()
-                    db.refresh(default_barbershop)
-                    logger.info(f"✅ Barbearia padrão criada com ID={default_barbershop.id}")
+                # Criar barbearia padrão usando ORM (mais confiável)
+                opening_hours_data = {
+                    "0": {"open": "08:00", "close": "18:00", "break_start": "12:00", "break_end": "13:00"},
+                    "1": {"open": "08:00", "close": "18:00", "break_start": "12:00", "break_end": "13:00"},
+                    "2": {"open": "08:00", "close": "18:00", "break_start": "12:00", "break_end": "13:00"},
+                    "3": {"open": "08:00", "close": "18:00", "break_start": "12:00", "break_end": "13:00"},
+                    "4": {"open": "08:00", "close": "18:00", "break_start": "12:00", "break_end": "13:00"},
+                    "5": {"open": "08:00", "close": "18:00", "break_start": "12:00", "break_end": "13:00"},
+                    "6": {"open": "09:00", "close": "14:00"}
+                }
+                
+                default_barbershop = Barbershop(
+                    name="Barbearia Principal",
+                    slug="barbearia-principal",
+                    description="Barbearia principal do sistema",
+                    email="contato@barbearia.com",
+                    phone="(11) 99999-9999",
+                    owner_id=admin_user.id,
+                    is_active=True,
+                    accepts_online_booking=True,
+                    default_appointment_duration=30,
+                    max_appointments_per_day=20,
+                    opening_hours=opening_hours_data
+                )
+                db.add(default_barbershop)
+                db.flush()  # Flush para obter o ID
+                
+                # Se não for ID=1, tentar atualizar a sequência do PostgreSQL
+                if default_barbershop.id != 1 and not DATABASE_URL.startswith("sqlite"):
+                    try:
+                        # Resetar sequência para que o próximo ID seja 1 (se a tabela estiver vazia)
+                        db.execute(text("SELECT setval('barbershops_id_seq', 1, false)"))
+                        # Deletar e recriar com ID=1
+                        db.delete(default_barbershop)
+                        db.flush()
+                        default_barbershop.id = 1
+                        db.add(default_barbershop)
+                    except Exception as seq_error:
+                        logger.warning(f"⚠️ Não foi possível resetar sequência: {seq_error}")
+                        # Continuar com o ID gerado automaticamente
+                
+                db.commit()
+                db.refresh(default_barbershop)
+                logger.info(f"✅ Barbearia padrão criada com ID={default_barbershop.id}")
+                
+                # Verificar se realmente foi criada
+                verify_barbershop = db.query(Barbershop).filter(Barbershop.id == default_barbershop.id).first()
+                if verify_barbershop:
+                    logger.info(f"✅ Verificação: Barbearia ID={verify_barbershop.id} existe no banco")
+                else:
+                    logger.error(f"❌ ERRO: Barbearia não foi criada corretamente!")
             else:
                 logger.info("✅ Barbearia padrão já existe")
         
