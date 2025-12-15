@@ -28,7 +28,8 @@ class Settings(BaseSettings):
     
     # === BANCO DE DADOS ===
     # PostgreSQL via Supabase (gratuito)
-    database_url: str = "postgresql://user:password@localhost:5432/barbershop_db"
+    # Usar Field para garantir que leia da variável de ambiente
+    database_url: str = os.getenv("DATABASE_URL", "postgresql://user:password@localhost:5432/barbershop_db")
     database_echo: bool = False  # Log de queries SQL
     
     # === REDIS (CACHE) ===

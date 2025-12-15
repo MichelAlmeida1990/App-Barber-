@@ -16,6 +16,13 @@ logger = logging.getLogger(__name__)
 # Usar DATABASE_URL da variável de ambiente, ou SQLite como fallback para desenvolvimento
 DATABASE_URL = settings.database_url or "sqlite:///./barbershop_dev.db"
 
+# Log para debug
+logger.info(f"🔍 DATABASE_URL configurado: {DATABASE_URL[:50]}..." if len(DATABASE_URL) > 50 else f"🔍 DATABASE_URL configurado: {DATABASE_URL}")
+if DATABASE_URL.startswith("sqlite"):
+    logger.warning("⚠️ Usando SQLite! Verifique se DATABASE_URL está configurado corretamente.")
+else:
+    logger.info("✅ Usando PostgreSQL")
+
 # Configurar connect_args baseado no tipo de banco
 connect_args = {}
 if DATABASE_URL.startswith("sqlite"):

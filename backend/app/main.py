@@ -164,14 +164,22 @@ async def startup_event():
     print("Iniciando Barbershop Manager API...")
     print("Conectando ao banco de dados...")
     
+    # Log da configuração do banco
+    from app.core.config import settings
+    db_url_preview = settings.database_url[:50] + "..." if len(settings.database_url) > 50 else settings.database_url
+    print(f"🔍 DATABASE_URL: {db_url_preview}")
+    
     # Inicializar banco de dados (criar tabelas se não existirem)
     try:
+        print("🔄 Inicializando tabelas do banco de dados...")
         if init_database():
             print("✅ Banco de dados inicializado com sucesso!")
         else:
             print("⚠️ Aviso: Não foi possível inicializar o banco de dados")
     except Exception as e:
-        print(f"⚠️ Erro ao inicializar banco de dados: {e}")
+        print(f"❌ Erro ao inicializar banco de dados: {e}")
+        import traceback
+        print(traceback.format_exc())
         # Não bloquear o startup se o banco já existir
     
     print("Inicializando modulos de IA...")
