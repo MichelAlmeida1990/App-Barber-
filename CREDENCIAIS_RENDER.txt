@@ -39,9 +39,8 @@ ENVIRONMENT=production
 FRONTEND_URL=https://seu-app.vercel.app
 (atualizar depois com URL da Vercel)
 
-GOOGLE_CLIENT_ID=(se tiver configurado)
-
-GOOGLE_CLIENT_SECRET=(se tiver configurado)
+GOOGLE_CLIENT_ID=(VER ARQUIVO .env LOCAL)
+GOOGLE_CLIENT_SECRET=(VER ARQUIVO .env LOCAL)
 ```
 
 ---
@@ -55,7 +54,7 @@ GOOGLE_CLIENT_SECRET=(se tiver configurado)
 ```env
 NEXT_PUBLIC_API_URL=(URL do backend do Render)
 
-NEXT_PUBLIC_GOOGLE_CLIENT_ID=(se tiver configurado)
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=(VER ARQUIVO .env LOCAL)
 ```
 
 ---
