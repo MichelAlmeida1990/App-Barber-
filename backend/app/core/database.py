@@ -112,6 +112,7 @@ def init_database():
     """
     try:
         # Criar todas as tabelas
+        logger.info("🔄 Criando tabelas do banco de dados...")
         Base.metadata.create_all(bind=engine)
         logger.info("✅ Tabelas criadas com sucesso")
         
@@ -122,6 +123,7 @@ def init_database():
         
         db = SessionLocal()
         try:
+            logger.info("🔄 Verificando dados essenciais...")
             # Verificar se já existe barbearia com id=1
             existing_barbershop = db.query(Barbershop).filter(Barbershop.id == 1).first()
             
@@ -173,19 +175,8 @@ def init_database():
                 db.add(default_barbershop)
                 db.flush()  # Flush para obter o ID
                 
-                # Se não for ID=1, tentar atualizar a sequência do PostgreSQL
-                if default_barbershop.id != 1 and not DATABASE_URL.startswith("sqlite"):
-                    try:
-                        # Resetar sequência para que o próximo ID seja 1 (se a tabela estiver vazia)
-                        db.execute(text("SELECT setval('barbershops_id_seq', 1, false)"))
-                        # Deletar e recriar com ID=1
-                        db.delete(default_barbershop)
-                        db.flush()
-                        default_barbershop.id = 1
-                        db.add(default_barbershop)
-                    except Exception as seq_error:
-                        logger.warning(f"⚠️ Não foi possível resetar sequência: {seq_error}")
-                        # Continuar com o ID gerado automaticamente
+                # Não tentar forçar ID=1, apenas usar o ID gerado
+                # O importante é que a barbearia exista
                 
                 db.commit()
                 db.refresh(default_barbershop)
@@ -202,7 +193,11 @@ def init_database():
         
         except Exception as e:
             logger.error(f"⚠️ Erro ao criar dados essenciais: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             db.rollback()
+            # Não retornar False aqui, pois as tabelas já foram criadas
+            # Apenas logar o erro e continuar
         finally:
             db.close()
         
@@ -212,6 +207,7 @@ def init_database():
         logger.error(f"❌ Erro ao inicializar banco: {e}")
         import traceback
         logger.error(traceback.format_exc())
+        # Se houver erro ao criar tabelas, retornar False
         return False
 
 def reset_database():
