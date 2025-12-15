@@ -47,7 +47,8 @@ function GoogleCallbackContent() {
         }
         
         // Enviar código para o backend
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/google`, {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        const response = await fetch(`${apiUrl}/api/v1/auth/google`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -56,8 +57,16 @@ function GoogleCallbackContent() {
         });
         
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.detail || 'Erro ao processar login');
+          let errorMessage = 'Erro ao processar login';
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.detail || errorMessage;
+            console.error('[Google OAuth] Erro do backend:', errorData);
+          } catch (e) {
+            console.error('[Google OAuth] Erro ao parsear resposta:', e);
+            errorMessage = `Erro ${response.status}: ${response.statusText}`;
+          }
+          throw new Error(errorMessage);
         }
         
         const data = await response.json();

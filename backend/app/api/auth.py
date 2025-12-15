@@ -481,6 +481,11 @@ async def google_oauth(google_data: GoogleOAuthRequest, db: Session = Depends(ge
         
         redirect_uri = settings.frontend_url.rstrip('/') + "/auth/google/callback"
         
+        # Log para debug (remover em produção se necessário)
+        print(f"[Google OAuth] Client ID: {settings.google_client_id[:20]}...")
+        print(f"[Google OAuth] Redirect URI: {redirect_uri}")
+        print(f"[Google OAuth] Frontend URL: {settings.frontend_url}")
+        
         # Trocar authorization code por access token
         token_response = requests.post(
             "https://oauth2.googleapis.com/token",
@@ -496,11 +501,27 @@ async def google_oauth(google_data: GoogleOAuthRequest, db: Session = Depends(ge
         
         if token_response.status_code != 200:
             error_detail = token_response.text
+            error_code = None
             try:
                 error_json = token_response.json()
-                error_detail = error_json.get("error_description", error_json.get("error", error_detail))
-            except:
-                pass
+                error_code = error_json.get("error", "unknown")
+                error_description = error_json.get("error_description", error_json.get("error", error_detail))
+                error_detail = f"{error_code}: {error_description}"
+                
+                # Log detalhado do erro
+                print(f"[Google OAuth Error] Status: {token_response.status_code}")
+                print(f"[Google OAuth Error] Response: {error_json}")
+                print(f"[Google OAuth Error] Redirect URI usado: {redirect_uri}")
+                
+            except Exception as e:
+                print(f"[Google OAuth Error] Erro ao parsear resposta: {e}")
+                print(f"[Google OAuth Error] Resposta bruta: {error_detail}")
+            
+            # Mensagem mais específica baseada no tipo de erro
+            if error_code == "invalid_grant":
+                error_detail = f"O código de autorização é inválido ou expirou. Verifique se o redirect_uri no Google Cloud Console está configurado como: {redirect_uri}"
+            elif error_code == "redirect_uri_mismatch":
+                error_detail = f"O redirect_uri não corresponde. Configure no Google Cloud Console: {redirect_uri}"
             
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
