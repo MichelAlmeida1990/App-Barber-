@@ -107,14 +107,85 @@ def get_redis() -> redis.Redis:
 
 def init_database():
     """
-    Inicializar banco de dados criando todas as tabelas.
+    Inicializar banco de dados criando todas as tabelas e dados essenciais.
     """
     try:
+        # Criar todas as tabelas
         Base.metadata.create_all(bind=engine)
-        logger.info("✅ Banco de dados inicializado")
+        logger.info("✅ Tabelas criadas com sucesso")
+        
+        # Criar dados essenciais (barbearia padrão)
+        from app.models.barbershop import Barbershop
+        from app.models.user import User, UserRole, UserStatus
+        from app.core.security import get_password_hash
+        
+        db = SessionLocal()
+        try:
+            # Verificar se já existe barbearia com id=1
+            existing_barbershop = db.query(Barbershop).filter(Barbershop.id == 1).first()
+            
+            if not existing_barbershop:
+                logger.info("🔄 Criando barbearia padrão...")
+                
+                # Verificar se existe usuário admin, se não criar um
+                admin_user = db.query(User).filter(User.role == UserRole.ADMIN).first()
+                
+                if not admin_user:
+                    logger.info("🔄 Criando usuário admin padrão...")
+                    admin_user = User(
+                        email="admin@barbearia.com",
+                        hashed_password=get_password_hash("admin123"),
+                        full_name="Administrador",
+                        role=UserRole.ADMIN,
+                        status=UserStatus.ACTIVE,
+                        is_verified=True
+                    )
+                    db.add(admin_user)
+                    db.commit()
+                    db.refresh(admin_user)
+                    logger.info("✅ Usuário admin criado")
+                
+                # Criar barbearia padrão
+                default_barbershop = Barbershop(
+                    id=1,  # Forçar ID=1
+                    name="Barbearia Principal",
+                    slug="barbearia-principal",
+                    description="Barbearia principal do sistema",
+                    email="contato@barbearia.com",
+                    phone="(11) 99999-9999",
+                    owner_id=admin_user.id,
+                    is_active=True,
+                    accepts_online_booking=True,
+                    default_appointment_duration=30,
+                    max_appointments_per_day=20,
+                    opening_hours={
+                        "0": {"open": "08:00", "close": "18:00", "break_start": "12:00", "break_end": "13:00"},
+                        "1": {"open": "08:00", "close": "18:00", "break_start": "12:00", "break_end": "13:00"},
+                        "2": {"open": "08:00", "close": "18:00", "break_start": "12:00", "break_end": "13:00"},
+                        "3": {"open": "08:00", "close": "18:00", "break_start": "12:00", "break_end": "13:00"},
+                        "4": {"open": "08:00", "close": "18:00", "break_start": "12:00", "break_end": "13:00"},
+                        "5": {"open": "08:00", "close": "18:00", "break_start": "12:00", "break_end": "13:00"},
+                        "6": {"open": "09:00", "close": "14:00"}
+                    }
+                )
+                db.add(default_barbershop)
+                db.commit()
+                logger.info("✅ Barbearia padrão criada com sucesso")
+            else:
+                logger.info("✅ Barbearia padrão já existe")
+        
+        except Exception as e:
+            logger.error(f"⚠️ Erro ao criar dados essenciais: {e}")
+            db.rollback()
+        finally:
+            db.close()
+        
+        logger.info("✅ Banco de dados inicializado completamente")
         return True
     except Exception as e:
         logger.error(f"❌ Erro ao inicializar banco: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         return False
 
 def reset_database():
