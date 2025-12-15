@@ -294,9 +294,28 @@ def ensure_default_barbershop(db: Session) -> int:
         max_appointments_per_day=20,
         opening_hours=opening_hours_data
     )
-    db.add(default_barbershop)
-    db.commit()
-    db.refresh(default_barbershop)
-    
-    logger.info(f"✅ Barbearia padrão criada com ID={default_barbershop.id}")
-    return default_barbershop.id 
+    try:
+        db.add(default_barbershop)
+        db.flush()  # Flush para obter o ID sem commit
+        barbershop_id = default_barbershop.id
+        db.commit()
+        db.refresh(default_barbershop)
+        
+        # Verificar se realmente foi criada
+        verify = db.query(Barbershop).filter(Barbershop.id == barbershop_id).first()
+        if verify:
+            logger.info(f"✅ Barbearia padrão criada e verificada com ID={barbershop_id}")
+            return barbershop_id
+        else:
+            logger.error(f"❌ ERRO: Barbearia não foi criada corretamente!")
+            raise Exception("Barbearia não foi criada")
+    except Exception as e:
+        db.rollback()
+        logger.error(f"❌ Erro ao criar barbearia: {e}")
+        # Tentar buscar qualquer barbearia existente
+        any_barbershop = db.query(Barbershop).first()
+        if any_barbershop:
+            logger.warning(f"⚠️ Usando barbearia existente ID={any_barbershop.id}")
+            return any_barbershop.id
+        # Se não conseguir criar nem encontrar, lançar exceção
+        raise Exception(f"Não foi possível criar ou encontrar barbearia: {e}") 
