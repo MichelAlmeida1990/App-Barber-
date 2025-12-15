@@ -23,7 +23,7 @@ from app.api.barber_blocks import router as barber_blocks_router
 # Importar modelos para garantir que sejam registrados no Base.metadata
 from app.models import (
     User, Barbershop, Barber, Client, Service, 
-    Appointment, Commission, Product
+    Appointment, Commission, Product, BarberBlock
 )
 
 # Importar função de inicialização do banco
