@@ -1,0 +1,33 @@
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Cadeira base -->
+  <rect x="20" y="60" width="80" height="40" rx="8" fill="#8B4513" stroke="#654321" stroke-width="2"/>
+  
+  <!-- Encosto -->
+  <rect x="25" y="20" width="70" height="50" rx="12" fill="#A0522D" stroke="#654321" stroke-width="2"/>
+  
+  <!-- Apoio de braço esquerdo -->
+  <rect x="15" y="45" width="15" height="25" rx="4" fill="#8B4513" stroke="#654321" stroke-width="2"/>
+  
+  <!-- Apoio de braço direito -->
+  <rect x="90" y="45" width="15" height="25" rx="4" fill="#8B4513" stroke="#654321" stroke-width="2"/>
+  
+  <!-- Base da cadeira -->
+  <circle cx="60" cy="105" r="8" fill="#2C2C2C"/>
+  <rect x="56" y="100" width="8" height="15" fill="#2C2C2C"/>
+  
+  <!-- Rodízios -->
+  <circle cx="45" cy="115" r="3" fill="#1A1A1A"/>
+  <circle cx="75" cy="115" r="3" fill="#1A1A1A"/>
+  <circle cx="60" cy="118" r="3" fill="#1A1A1A"/>
+  <circle cx="60" cy="112" r="3" fill="#1A1A1A"/>
+  
+  <!-- Detalhes do estofado -->
+  <path d="M30 30 Q60 25 90 30" stroke="#654321" stroke-width="1" fill="none"/>
+  <path d="M30 40 Q60 35 90 40" stroke="#654321" stroke-width="1" fill="none"/>
+  <path d="M30 50 Q60 45 90 50" stroke="#654321" stroke-width="1" fill="none"/>
+  
+  <!-- Botões do estofado -->
+  <circle cx="45" cy="35" r="2" fill="#654321"/>
+  <circle cx="75" cy="35" r="2" fill="#654321"/>
+  <circle cx="60" cy="45" r="2" fill="#654321"/>
+</svg> 

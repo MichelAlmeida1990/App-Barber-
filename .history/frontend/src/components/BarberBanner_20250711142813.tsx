@@ -1,0 +1,103 @@
+import Image from 'next/image';
+
+interface BarberBannerProps {
+  title?: string;
+  subtitle?: string;
+  variant?: 'default' | 'compact' | 'promo';
+}
+
+export default function BarberBanner({ 
+  title = "Elite Barber Shop", 
+  subtitle = "Excelência em cada corte",
+  variant = 'default' 
+}: BarberBannerProps) {
+
+  if (variant === 'compact') {
+    return (
+      <div className="bg-gradient-to-r from-amber-800 via-amber-700 to-yellow-800 px-4 py-2 rounded-lg shadow-sm border border-amber-600/30">
+        <div className="flex items-center justify-center space-x-3">
+          <Image src="/images/barbershop/scissors.svg" alt="" width={16} height={16} className="opacity-70" />
+          <span className="text-sm font-medium text-yellow-100">{title}</span>
+          <Image src="/images/barbershop/razor.svg" alt="" width={20} height={12} className="opacity-70" />
+        </div>
+      </div>
+    );
+  }
+
+  if (variant === 'promo') {
+    return (
+      <div className="bg-gradient-to-r from-amber-900 via-yellow-800 to-orange-800 px-6 py-4 rounded-xl shadow-lg border border-yellow-600/40 relative overflow-hidden">
+        {/* Background decorative elements */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-2 left-4">
+            <Image src="/images/barbershop/barber-pole.svg" alt="" width={20} height={40} />
+          </div>
+          <div className="absolute bottom-2 right-4">
+            <Image src="/images/barbershop/hair-clipper.svg" alt="" width={16} height={32} />
+          </div>
+        </div>
+        
+        <div className="relative">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-bold text-yellow-100">{title}</h3>
+              <p className="text-sm text-yellow-200">{subtitle}</p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Image src="/images/barbershop/scissors.svg" alt="" width={20} height={20} className="opacity-60" />
+              <Image src="/images/barbershop/comb.svg" alt="" width={24} height={8} className="opacity-60" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Default variant
+  return (
+    <div className="bg-gradient-to-r from-amber-900 via-amber-800 to-yellow-900 px-8 py-6 rounded-xl shadow-xl border border-yellow-600/30 relative overflow-hidden">
+      {/* Background decorative elements */}
+      <div className="absolute inset-0 opacity-5">
+        <div className="absolute top-4 left-8">
+          <Image src="/images/barbershop/barber-chair.svg" alt="" width={40} height={40} />
+        </div>
+        <div className="absolute top-4 right-8">
+          <Image src="/images/barbershop/barber-pole.svg" alt="" width={20} height={40} />
+        </div>
+        <div className="absolute bottom-4 left-1/4">
+          <Image src="/images/barbershop/hair-clipper.svg" alt="" width={24} height={48} />
+        </div>
+        <div className="absolute bottom-4 right-1/4">
+          <Image src="/images/barbershop/razor.svg" alt="" width={40} height={24} />
+        </div>
+      </div>
+
+      <div className="relative text-center">
+        {/* Logo */}
+        <div className="mb-4">
+          <Image 
+            src="/images/barbershop/logo.svg" 
+            alt="Elite Barber Shop Logo" 
+            width={100} 
+            height={50} 
+            className="mx-auto"
+          />
+        </div>
+        
+        <h2 className="text-2xl font-bold text-yellow-100 mb-2">{title}</h2>
+        <p className="text-yellow-200 mb-4">{subtitle}</p>
+        
+        {/* Decorative icons */}
+        <div className="flex justify-center items-center space-x-4">
+          <Image src="/images/barbershop/scissors.svg" alt="Scissors" width={20} height={20} className="opacity-60" />
+          <div className="w-px h-4 bg-yellow-400 opacity-60"></div>
+          <Image src="/images/barbershop/razor.svg" alt="Razor" width={28} height={16} className="opacity-60" />
+          <div className="w-px h-4 bg-yellow-400 opacity-60"></div>
+          <Image src="/images/barbershop/comb.svg" alt="Comb" width={32} height={10} className="opacity-60" />
+          <div className="w-px h-4 bg-yellow-400 opacity-60"></div>
+          <Image src="/images/barbershop/hair-clipper.svg" alt="Hair Clipper" width={16} height={32} className="opacity-60" />
+        </div>
+      </div>
+    </div>
+  );
+} 

@@ -1,0 +1,18 @@
+<svg width="32" height="80" viewBox="0 0 32 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Poste -->
+  <rect x="8" y="8" width="16" height="64" fill="#F5F5F5" stroke="#DDD" stroke-width="1"/>
+  
+  <!-- Espiral vermelha -->
+  <path d="M8 12 Q20 18 8 24 Q20 30 8 36 Q20 42 8 48 Q20 54 8 60 Q20 66 8 72" 
+        stroke="#DC2626" stroke-width="3" fill="none"/>
+  
+  <!-- Espiral azul -->
+  <path d="M24 12 Q12 18 24 24 Q12 30 24 36 Q12 42 24 48 Q12 54 24 60 Q12 66 24 72" 
+        stroke="#2563EB" stroke-width="3" fill="none"/>
+  
+  <!-- Tampa superior -->
+  <ellipse cx="16" cy="8" rx="8" ry="3" fill="#333"/>
+  
+  <!-- Tampa inferior -->
+  <ellipse cx="16" cy="72" rx="8" ry="3" fill="#333"/>
+</svg> 

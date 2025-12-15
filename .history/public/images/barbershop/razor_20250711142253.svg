@@ -1,0 +1,27 @@
+<svg width="100" height="60" viewBox="0 0 100 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Cabo da navalha -->
+  <rect x="10" y="25" width="30" height="10" rx="5" fill="#8B4513" stroke="#654321" stroke-width="1"/>
+  
+  <!-- Detalhes do cabo -->
+  <rect x="12" y="27" width="26" height="6" rx="3" fill="#A0522D"/>
+  <circle cx="16" cy="30" r="1" fill="#654321"/>
+  <circle cx="22" cy="30" r="1" fill="#654321"/>
+  <circle cx="28" cy="30" r="1" fill="#654321"/>
+  <circle cx="34" cy="30" r="1" fill="#654321"/>
+  
+  <!-- Lâmina -->
+  <path d="M40 30 L85 25 L90 30 L85 35 L40 30 Z" fill="#E8E8E8" stroke="#C0C0C0" stroke-width="1"/>
+  
+  <!-- Fio da lâmina -->
+  <path d="M85 25 L90 30 L85 35" stroke="#808080" stroke-width="0.5" fill="none"/>
+  
+  <!-- Brilho na lâmina -->
+  <path d="M45 30 L80 26 L82 30 L80 34 L45 30 Z" fill="#FFFFFF" opacity="0.5"/>
+  
+  <!-- Articulação -->
+  <circle cx="40" cy="30" r="3" fill="#606060" stroke="#404040" stroke-width="1"/>
+  <circle cx="40" cy="30" r="1" fill="#808080"/>
+  
+  <!-- Sombra -->
+  <ellipse cx="50" cy="45" rx="25" ry="3" fill="#000000" opacity="0.2"/>
+</svg> 
