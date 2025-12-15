@@ -119,7 +119,9 @@ def init_database():
         # Criar dados essenciais (barbearia padrão)
         from app.models.barbershop import Barbershop
         from app.models.user import User, UserRole, UserStatus
-        from app.core.security import get_password_hash
+        from passlib.context import CryptContext
+        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        get_password_hash = lambda pwd: pwd_context.hash(pwd)
         
         db = SessionLocal()
         try:
@@ -231,7 +233,9 @@ def ensure_default_barbershop(db: Session) -> int:
     """
     from app.models.barbershop import Barbershop
     from app.models.user import User, UserRole, UserStatus
-    from app.core.security import get_password_hash
+    from passlib.context import CryptContext
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+    get_password_hash = lambda pwd: pwd_context.hash(pwd)
     
     # Verificar se já existe barbearia com ID=1
     barbershop = db.query(Barbershop).filter(Barbershop.id == 1).first()
