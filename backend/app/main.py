@@ -81,8 +81,8 @@ if frontend_url:
 
 # Adicionar domínios Vercel padrão
 allowed_origins.extend([
+    "https://app-barber-iota.vercel.app",
     "https://*.vercel.app",
-    "https://*.vercel.app/*",
 ])
 
 app.add_middleware(
