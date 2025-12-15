@@ -81,10 +81,14 @@ function GoogleCallbackContent() {
           user: data.user
         }, window.location.origin);
         
-        // Fechar popup automaticamente após 2 segundos
+        // Fechar popup imediatamente após enviar mensagem
         setTimeout(() => {
-          window.close();
-        }, 2000);
+          try {
+            window.close();
+          } catch (e) {
+            // Ignorar erro de COOP policy
+          }
+        }, 100);
         
       } catch (error) {
         setStatus('error');

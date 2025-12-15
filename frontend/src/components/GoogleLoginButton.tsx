@@ -3,7 +3,7 @@
 import { useState } from 'react';
 
 interface GoogleLoginButtonProps {
-  onSuccess: (credential: string) => void;
+  onSuccess: (credential: string, userData?: any) => void;
   onError: (error: any) => void;
   onCancel?: () => void;
   disabled?: boolean;
@@ -81,10 +81,11 @@ export default function GoogleLoginButton({
           try {
             popup.close();
           } catch (e) {
-            // Popup pode já estar fechado
+            // Popup pode já estar fechado (COOP policy)
           }
           setIsLoading(false);
-          onSuccess(event.data.token);
+          // Passar token e userData se disponível
+          onSuccess(event.data.token, event.data.user);
           window.removeEventListener('message', handleMessage);
         } else if (event.data.type === 'GOOGLE_AUTH_CANCEL') {
           try {

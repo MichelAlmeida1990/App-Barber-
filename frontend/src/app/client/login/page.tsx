@@ -89,39 +89,44 @@ export default function ClientLogin() {
     }
   };
 
-  const handleGoogleSuccess = async (token: string) => {
+  const handleGoogleSuccess = async (token: string, userData?: any) => {
     setLoading(true);
     setError('');
 
     try {
-      // O token já vem processado do backend
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/auth/me`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
+      // Se userData foi passado, usar diretamente (vem do callback)
+      let user = userData;
+      
+      // Se não foi passado, buscar do backend
+      if (!user) {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/auth/me`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
 
-      if (!response.ok) {
-        throw new Error('Erro ao obter dados do usuário');
+        if (!response.ok) {
+          throw new Error('Erro ao obter dados do usuário');
+        }
+
+        user = await response.json();
       }
-
-      const userData = await response.json();
       
       // Verificar se é cliente
-      if (userData.role !== 'client') {
+      if (user.role !== 'client') {
         setError('Acesso negado. Esta área é exclusiva para clientes.');
+        setLoading(false);
         return;
       }
 
-      // Salvar token
+      // Salvar token e dados do usuário
       localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(userData));
+      localStorage.setItem('user', JSON.stringify(user));
       
       // Redirecionar para área do cliente
       router.push('/client/dashboard');
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Erro ao fazer login com Google');
-    } finally {
       setLoading(false);
     }
   };
