@@ -460,6 +460,27 @@ async def google_oauth(google_data: GoogleOAuthRequest, db: Session = Depends(ge
     """
     
     try:
+        # Validar configurações antes de usar
+        if not settings.google_client_id:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="GOOGLE_CLIENT_ID não configurado no servidor"
+            )
+        
+        if not settings.google_client_secret:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="GOOGLE_CLIENT_SECRET não configurado no servidor"
+            )
+        
+        if not settings.frontend_url:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="FRONTEND_URL não configurado no servidor"
+            )
+        
+        redirect_uri = settings.frontend_url.rstrip('/') + "/auth/google/callback"
+        
         # Trocar authorization code por access token
         token_response = requests.post(
             "https://oauth2.googleapis.com/token",
@@ -468,15 +489,22 @@ async def google_oauth(google_data: GoogleOAuthRequest, db: Session = Depends(ge
                 "client_secret": settings.google_client_secret,
                 "code": google_data.code,
                 "grant_type": "authorization_code",
-                "redirect_uri": settings.frontend_url + "/auth/google/callback"
+                "redirect_uri": redirect_uri
             },
             headers={"Content-Type": "application/x-www-form-urlencoded"}
         )
         
         if token_response.status_code != 200:
+            error_detail = token_response.text
+            try:
+                error_json = token_response.json()
+                error_detail = error_json.get("error_description", error_json.get("error", error_detail))
+            except:
+                pass
+            
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Erro ao obter token do Google"
+                detail=f"Erro ao obter token do Google: {error_detail}"
             )
         
         token_data = token_response.json()
@@ -607,12 +635,18 @@ async def google_oauth(google_data: GoogleOAuthRequest, db: Session = Depends(ge
             )
         )
         
+    except HTTPException:
+        # Re-raise HTTPExceptions (já tratadas)
+        raise
     except requests.RequestException as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Erro na comunicação com Google: {str(e)}"
         )
     except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"Erro no Google OAuth: {error_trace}")  # Log no servidor
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro interno: {str(e)}"
