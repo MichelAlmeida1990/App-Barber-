@@ -13,16 +13,34 @@ logger = logging.getLogger(__name__)
 
 # === CONFIGURAÇÃO DO BANCO ===
 
-# Usar SQLite temporariamente para desenvolvimento
-DATABASE_URL = "sqlite:///./barbershop_dev.db"
+# Usar DATABASE_URL da variável de ambiente, ou SQLite como fallback para desenvolvimento
+DATABASE_URL = settings.database_url or "sqlite:///./barbershop_dev.db"
+
+# Configurar connect_args baseado no tipo de banco
+connect_args = {}
+if DATABASE_URL.startswith("sqlite"):
+    connect_args = {"check_same_thread": False}
+    poolclass = StaticPool
+else:
+    # PostgreSQL não precisa de connect_args especiais
+    poolclass = None
 
 # Criar engine do SQLAlchemy
-engine = create_engine(
-    DATABASE_URL,
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
-    echo=settings.database_echo
-)
+if poolclass:
+    engine = create_engine(
+        DATABASE_URL,
+        connect_args=connect_args,
+        poolclass=poolclass,
+        echo=settings.database_echo
+    )
+else:
+    engine = create_engine(
+        DATABASE_URL,
+        echo=settings.database_echo,
+        pool_pre_ping=True,  # Verificar conexão antes de usar
+        pool_size=5,
+        max_overflow=10
+    )
 
 # Criar SessionLocal
 SessionLocal = sessionmaker(

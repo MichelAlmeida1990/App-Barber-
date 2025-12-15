@@ -20,6 +20,15 @@ from app.api.ai import router as ai_router
 from app.api.commissions import router as commissions_router
 from app.api.barber_blocks import router as barber_blocks_router
 
+# Importar modelos para garantir que sejam registrados no Base.metadata
+from app.models import (
+    User, Barbershop, Barber, Client, Service, 
+    Appointment, Commission, Product
+)
+
+# Importar função de inicialização do banco
+from app.core.database import init_database
+
 # Criar instância do FastAPI
 app = FastAPI(
     title="💈 Barbershop Manager API",
@@ -154,6 +163,17 @@ async def startup_event():
     """
     print("Iniciando Barbershop Manager API...")
     print("Conectando ao banco de dados...")
+    
+    # Inicializar banco de dados (criar tabelas se não existirem)
+    try:
+        if init_database():
+            print("✅ Banco de dados inicializado com sucesso!")
+        else:
+            print("⚠️ Aviso: Não foi possível inicializar o banco de dados")
+    except Exception as e:
+        print(f"⚠️ Erro ao inicializar banco de dados: {e}")
+        # Não bloquear o startup se o banco já existir
+    
     print("Inicializando modulos de IA...")
     print("API pronta para receber requisicoes!")
 
