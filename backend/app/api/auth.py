@@ -353,13 +353,17 @@ async def google_login(google_data: GoogleLoginRequest, db: Session = Depends(ge
         if existing_user.role == UserRole.CLIENT:
             existing_client = db.query(Client).filter(Client.user_id == existing_user.id).first()
             if not existing_client:
+                # Garantir que barbearia padrão existe
+                from app.core.database import ensure_default_barbershop
+                barbershop_id = ensure_default_barbershop(db)
+                
                 db_client = Client(
                     user_id=existing_user.id,
                     name=existing_user.full_name,
                     email=existing_user.email,
                     phone=existing_user.phone,
                     status=ClientStatus.ACTIVE,
-                    barbershop_id=1  # ID padrão da barbearia
+                    barbershop_id=barbershop_id
                 )
                 db.add(db_client)
                 db.commit()
@@ -387,13 +391,17 @@ async def google_login(google_data: GoogleLoginRequest, db: Session = Depends(ge
             # Criar registro Client automaticamente para novos usuários Google
             existing_client = db.query(Client).filter(Client.user_id == user.id).first()
             if not existing_client:
+                # Garantir que barbearia padrão existe
+                from app.core.database import ensure_default_barbershop
+                barbershop_id = ensure_default_barbershop(db)
+                
                 db_client = Client(
                     user_id=user.id,
                     name=user.full_name,
                     email=user.email,
                     phone=user.phone,
                     status=ClientStatus.ACTIVE,
-                    barbershop_id=1  # ID padrão da barbearia
+                    barbershop_id=barbershop_id
                 )
                 db.add(db_client)
                 db.commit()
@@ -620,13 +628,17 @@ async def google_oauth(google_data: GoogleOAuthRequest, db: Session = Depends(ge
             # Criar registro Client automaticamente para novos usuários Google
             existing_client = db.query(Client).filter(Client.user_id == user.id).first()
             if not existing_client:
+                # Garantir que barbearia padrão existe
+                from app.core.database import ensure_default_barbershop
+                barbershop_id = ensure_default_barbershop(db)
+                
                 db_client = Client(
                     user_id=user.id,
                     name=user.full_name,
                     email=user.email,
                     phone=user.phone,
                     status=ClientStatus.ACTIVE,
-                    barbershop_id=1  # ID padrão da barbearia
+                    barbershop_id=barbershop_id
                 )
                 db.add(db_client)
                 db.commit()
