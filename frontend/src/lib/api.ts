@@ -98,6 +98,54 @@ export async function authenticatedFetch(
 }
 
 /**
+ * Pequenos wrappers de API usados pelas telas admin.
+ * Mantém compatibilidade com imports existentes (ex.: { servicesAPI }).
+ */
+async function apiTest(url: string) {
+  const response = await authenticatedFetch(url, { method: 'GET' });
+  if (!response.ok) {
+    throw new Error(`API test failed (${response.status})`);
+  }
+  // manter formato parecido com axios: { data }
+  const data = await response.json().catch(() => ({}));
+  return { data };
+}
+
+export const appointmentsAPI = {
+  test: () => apiTest(API_ENDPOINTS.APPOINTMENTS.BASE),
+};
+
+export const analyticsAPI = {
+  test: () => apiTest(API_ENDPOINTS.ANALYTICS.BASE),
+};
+
+export const servicesAPI = {
+  test: () => apiTest(API_ENDPOINTS.SERVICES.BASE),
+};
+
+// Alguns endpoints existem no backend, mas nem todos estão listados em API_ENDPOINTS.
+// Para as telas atuais, precisamos só do "test" e do "create" em sales.
+export const productsAPI = {
+  test: () => apiTest(`${API_PREFIX}/products`),
+};
+
+export const salesAPI = {
+  test: () => apiTest(`${API_PREFIX}/sales`),
+  create: async (payload: any) => {
+    const response = await authenticatedFetch(`${API_PREFIX}/sales`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      const err = await response.text().catch(() => '');
+      throw new Error(err || `Erro ao criar venda (${response.status})`);
+    }
+    const data = await response.json().catch(() => ({}));
+    return { data };
+  },
+};
+
+/**
  * Exportar URL base para uso em outros lugares
  */
 export { API_BASE_URL, API_PREFIX };
