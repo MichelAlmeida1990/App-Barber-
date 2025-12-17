@@ -74,7 +74,7 @@ export default function Sidebar({ className = '' }: SidebarProps) {
       icon: 'barber-pole',
       description: 'Gestão de comissões'
     }
-  ];
+  ] as const;
 
   return (
     <aside className={`bg-gray-900 border-r border-gray-700 transition-all duration-300 ${
