@@ -1,0 +1,4 @@
+# Arquivo para forçar rebuild na Vercel
+# Última atualização: 2025-01-11
+# Este arquivo garante que todas as páginas admin sejam incluídas no build
+
