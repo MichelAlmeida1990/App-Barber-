@@ -57,9 +57,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             </div>
           </div>
 
-          <main className="flex-1">
-            <div className="py-6">
-              <div className="px-4 sm:px-6 lg:px-8">
+          <main className="flex-1 overflow-x-auto">
+            <div className="py-6 min-w-0">
+              <div className="px-4 sm:px-6 lg:px-8 max-w-full">
                 {children}
               </div>
             </div>

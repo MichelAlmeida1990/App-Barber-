@@ -248,8 +248,9 @@ export default function SalesPage() {
 
   return (
     <AdminLayout>
+      <div className="w-full max-w-full overflow-x-auto">
       {/* Cabeçalho */}
-      <div className="pb-4 sm:pb-5 border-b border-red-200 mb-4 sm:mb-6 bg-gradient-to-r from-gray-50 to-red-50 rounded-lg p-4 sm:p-6 shadow-sm border-2 border-yellow-500">
+      <div className="pb-4 sm:pb-5 border-b border-red-200 mb-4 sm:mb-6 bg-gradient-to-r from-gray-50 to-red-50 rounded-lg p-4 sm:p-6 shadow-sm border-2 border-yellow-500 min-w-0">
         <div className="sm:flex sm:items-center sm:justify-between">
           <div className="flex items-center mb-3 sm:mb-0">
             <div className="mr-3 sm:mr-4 flex-shrink-0">
@@ -419,7 +420,7 @@ export default function SalesPage() {
       </div>
 
       {/* Lista de Vendas */}
-      <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+      <div className="bg-white shadow overflow-x-auto sm:rounded-lg">
         <div className="px-3 sm:px-4 py-4 sm:py-5 sm:p-6">
           <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-3 sm:mb-4">
             Vendas Recentes ({filteredSales.length})
@@ -526,8 +527,8 @@ export default function SalesPage() {
               </div>
 
               {/* Versão Desktop - Tabela */}
-              <div className="hidden md:block overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
+              <div className="hidden md:block overflow-x-visible">
+                <table className="w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
