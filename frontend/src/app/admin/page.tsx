@@ -65,11 +65,14 @@ interface ClientAtRisk {
   days_overdue: number | null;
 }
 
+const ADMIN_APPOINTMENTS_LS_KEY = 'admin_appointments_v1';
+
 export default function AdminDashboard() {
   const [apiStatus, setApiStatus] = useState('🔄 Verificando conexão...');
   const [loading, setLoading] = useState(false);
   const [clientsAtRisk, setClientsAtRisk] = useState<ClientAtRisk[]>([]);
   const [loadingRisk, setLoadingRisk] = useState(false);
+  const [upcomingAppointments, setUpcomingAppointments] = useState<any[]>([]);
 
   const testApiConnection = async () => {
     setLoading(true);
@@ -124,7 +127,35 @@ export default function AdminDashboard() {
     
     testApiConnection();
     loadClientsAtRisk();
+    loadUpcomingAppointments();
   }, []);
+
+  const loadUpcomingAppointments = () => {
+    try {
+      const raw = localStorage.getItem(ADMIN_APPOINTMENTS_LS_KEY);
+      if (raw) {
+        const appointments = JSON.parse(raw);
+        if (Array.isArray(appointments) && appointments.length > 0) {
+          // Filtrar apenas agendamentos futuros ou de hoje, ordenar por data/hora
+          const today = new Date().toISOString().split('T')[0];
+          const upcoming = appointments
+            .filter((apt: any) => {
+              const aptDate = apt.data || apt.date;
+              return aptDate >= today && apt.status === 'agendado';
+            })
+            .sort((a: any, b: any) => {
+              const dateA = `${a.data || a.date} ${a.hora || a.time || '00:00'}`;
+              const dateB = `${b.data || b.date} ${b.hora || b.time || '00:00'}`;
+              return dateA.localeCompare(dateB);
+            })
+            .slice(0, 5); // Top 5 próximos
+          setUpcomingAppointments(upcoming);
+        }
+      }
+    } catch (e) {
+      console.warn('Erro ao carregar agendamentos:', e);
+    }
+  };
 
   const loadClientsAtRisk = async () => {
     setLoadingRisk(true);
@@ -350,34 +381,47 @@ export default function AdminDashboard() {
           </Link>
         </h2>
         <div className="bg-white shadow overflow-hidden sm:rounded-md">
-          <ul className="divide-y divide-gray-200">
-            {[
-              { id: 1, cliente: 'Carregando...', servico: 'Verifique a página de agendamentos', barbeiro: 'Admin', horario: '--:--', status: 'pendente' },
-            ].map((agendamento) => (
-              <li key={agendamento.id}>
-                <div className="px-3 sm:px-4 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
-                  <div className="flex items-center flex-1 min-w-0">
-                    <div className="flex-shrink-0">
-                      <ClockIcon className="h-5 w-5 sm:h-6 sm:w-6 text-gray-400" />
+          {upcomingAppointments.length === 0 ? (
+            <div className="px-3 sm:px-4 py-8 text-center">
+              <ClockIcon className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-2 text-sm font-medium text-gray-900">Nenhum agendamento próximo</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                Não há agendamentos futuros. <Link href="/admin/appointments" className="text-indigo-600 hover:text-indigo-900">Criar agendamento</Link>
+              </p>
+            </div>
+          ) : (
+            <ul className="divide-y divide-gray-200">
+              {upcomingAppointments.map((agendamento) => (
+                <li key={agendamento.id}>
+                  <div className="px-3 sm:px-4 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
+                    <div className="flex items-center flex-1 min-w-0">
+                      <div className="flex-shrink-0">
+                        <ClockIcon className="h-5 w-5 sm:h-6 sm:w-6 text-gray-400" />
+                      </div>
+                      <div className="ml-3 sm:ml-4 flex-1 min-w-0">
+                        <div className="text-sm font-medium text-gray-900 truncate">{agendamento.cliente || agendamento.clientName}</div>
+                        <div className="text-xs sm:text-sm text-gray-500 truncate">
+                          {agendamento.servico || agendamento.service} com {agendamento.barbeiro || agendamento.barber}
+                        </div>
+                      </div>
                     </div>
-                    <div className="ml-3 sm:ml-4 flex-1 min-w-0">
-                      <div className="text-sm font-medium text-gray-900 truncate">{agendamento.cliente}</div>
-                      <div className="text-xs sm:text-sm text-gray-500 truncate">{agendamento.servico} com {agendamento.barbeiro}</div>
+                    <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-0">
+                      <div className="text-xs sm:text-sm text-gray-900 sm:mr-4">{agendamento.hora || agendamento.time || '--:--'}</div>
+                      <span className={classNames(
+                        agendamento.status === 'confirmado' || agendamento.status === 'agendado' ? 'bg-green-100 text-green-800' : 
+                        agendamento.status === 'concluido' ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800',
+                        'inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-xs font-medium flex-shrink-0'
+                      )}>
+                        {agendamento.status === 'agendado' ? 'Agendado' : 
+                         agendamento.status === 'concluido' ? 'Concluído' : 
+                         agendamento.status || 'Pendente'}
+                      </span>
                     </div>
                   </div>
-                  <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-0">
-                    <div className="text-xs sm:text-sm text-gray-900 sm:mr-4">{agendamento.horario}</div>
-                    <span className={classNames(
-                      agendamento.status === 'confirmado' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800',
-                      'inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-xs font-medium flex-shrink-0'
-                    )}>
-                      {agendamento.status}
-                    </span>
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
 
@@ -406,7 +450,10 @@ export default function AdminDashboard() {
             </div>
           </button>
 
-          <div className="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-500 rounded-lg shadow hover:shadow-md transition-shadow">
+          <Link 
+            href="/admin/clients"
+            className="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-500 rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer"
+          >
             <div>
               <span className="rounded-lg inline-flex p-3 bg-green-50 text-green-700 ring-4 ring-white">
                 <UsersIcon className="h-6 w-6" aria-hidden="true" />
@@ -421,9 +468,12 @@ export default function AdminDashboard() {
                 Cadastrar um novo cliente
               </p>
             </div>
-          </div>
+          </Link>
 
-          <div className="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-500 rounded-lg shadow hover:shadow-md transition-shadow">
+          <Link 
+            href="/admin/appointments"
+            className="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-500 rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer"
+          >
             <div>
               <span className="rounded-lg inline-flex p-3 bg-blue-50 text-blue-700 ring-4 ring-white">
                 <CalendarIcon className="h-6 w-6" aria-hidden="true" />
@@ -438,9 +488,12 @@ export default function AdminDashboard() {
                 Agendar um novo serviço
               </p>
             </div>
-          </div>
+          </Link>
 
-          <div className="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-500 rounded-lg shadow hover:shadow-md transition-shadow">
+          <Link 
+            href="/admin/sales"
+            className="relative group bg-white p-6 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-500 rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer"
+          >
             <div>
               <span className="rounded-lg inline-flex p-3 bg-orange-50 text-orange-700 ring-4 ring-white">
                 <CurrencyDollarIcon className="h-6 w-6" aria-hidden="true" />
@@ -455,7 +508,7 @@ export default function AdminDashboard() {
                 Registrar uma nova venda
               </p>
             </div>
-          </div>
+          </Link>
         </div>
       </div>
     </AdminLayout>
