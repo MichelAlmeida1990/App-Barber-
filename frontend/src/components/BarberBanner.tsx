@@ -9,8 +9,8 @@ interface BarberBannerProps {
 
 export default function BarberBanner({ 
   variant = 'primary', 
-  title = 'ELITE BARBER SHOP',
-  subtitle = 'Professional Grooming Experience',
+  title = 'BARBEARIA DO DUDÃO',
+  subtitle = 'Since 2020 - Tradição & Qualidade',
   className = '' 
 }: BarberBannerProps) {
   const variants = {

@@ -262,7 +262,7 @@ export default function SalesPage() {
                 <IconFallback type="barber-pole" size="md" className="ml-2 sm:ml-3 opacity-50 hidden sm:block" />
               </div>
               <p className="max-w-4xl text-xs sm:text-sm text-gray-700">
-                Gestão completa de vendas da Elite Barber Shop
+                Gestão completa de vendas da BARBEARIA DO DUDÃO
               </p>
             </div>
           </div>

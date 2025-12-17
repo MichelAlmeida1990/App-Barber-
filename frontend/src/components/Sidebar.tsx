@@ -87,12 +87,44 @@ export default function Sidebar({ className = '' }: SidebarProps) {
           <div className="flex items-center justify-between">
             {!isCollapsed && (
               <div className="flex items-center space-x-3">
-                <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 p-2 rounded-lg">
-                  <IconFallback type="barber-pole" size="md" className="text-black" />
+                <div className="flex-shrink-0">
+                  <img 
+                    src="/images/logo-dudao.png" 
+                    alt="BARBEARIA DO DUDÃO" 
+                    className="h-12 w-12 object-contain"
+                    onError={(e) => {
+                      // Fallback para ícone se logo não carregar
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      const fallback = target.nextElementSibling as HTMLElement;
+                      if (fallback) fallback.style.display = 'block';
+                    }}
+                  />
+                  <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 p-2 rounded-lg hidden">
+                    <IconFallback type="barber-pole" size="md" className="text-black" />
+                  </div>
                 </div>
                 <div>
-                  <h2 className="text-white font-bold text-lg">BarberShop</h2>
-                  <p className="text-gray-400 text-xs">Manager Pro</p>
+                  <h2 className="text-white font-bold text-lg">BARBEARIA</h2>
+                  <p className="text-gray-400 text-xs">DO DUDÃO</p>
+                </div>
+              </div>
+            )}
+            {isCollapsed && (
+              <div className="flex justify-center">
+                <img 
+                  src="/images/logo-dudao.png" 
+                  alt="BARBEARIA DO DUDÃO" 
+                  className="h-10 w-10 object-contain"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                    const fallback = target.nextElementSibling as HTMLElement;
+                    if (fallback) fallback.style.display = 'block';
+                  }}
+                />
+                <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 p-2 rounded-lg hidden">
+                  <IconFallback type="barber-pole" size="md" className="text-black" />
                 </div>
               </div>
             )}

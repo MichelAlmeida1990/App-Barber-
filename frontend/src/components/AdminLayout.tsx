@@ -42,7 +42,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           <div className="lg:hidden">
             <div className="flex items-center justify-between bg-gradient-to-r from-black to-gray-800 border-b-2 border-yellow-500 px-4 py-3 sm:px-6">
               <div>
-                <h1 className="text-lg font-bold text-yellow-400">ELITE BARBER</h1>
+                <h1 className="text-lg font-bold text-yellow-400">BARBEARIA DO DUDÃO</h1>
                 <p className="text-xs text-red-400">ADMIN PANEL</p>
               </div>
               <div>

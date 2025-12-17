@@ -222,8 +222,8 @@ export default function AdminDashboard() {
       {/* Banner Principal */}
       <div className="mb-8">
         <BarberBanner 
-          title="Elite Barber Shop - Dashboard" 
-          subtitle="Visão geral da sua barbearia" 
+          title="BARBEARIA DO DUDÃO - Dashboard" 
+          subtitle="Visão geral da sua barbearia - Since 2020" 
           variant="promo"
         />
       </div>
@@ -239,7 +239,7 @@ export default function AdminDashboard() {
               <IconFallback type="scissors" size="md" className="ml-0 sm:ml-3 opacity-50 hidden sm:block" />
             </div>
             <p className="max-w-4xl text-xs sm:text-sm text-gray-700">
-              Estatísticas e informações importantes da Elite Barber Shop
+              Estatísticas e informações importantes da BARBEARIA DO DUDÃO
             </p>
           </div>
         </div>
