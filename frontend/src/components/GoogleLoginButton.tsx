@@ -51,6 +51,7 @@ export default function GoogleLoginButton({
         return;
       }
       let messageReceived = false;
+      let popupClosedByUser = false;
       
       // Monitorar o popup com try-catch para evitar erro COOP
       const checkClosed = setInterval(() => {

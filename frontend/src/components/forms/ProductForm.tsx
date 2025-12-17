@@ -7,21 +7,22 @@ import { generateId } from '@/lib/utils';
 interface ProductFormProps {
   onSuccess: (product: any) => void;
   onCancel: () => void;
+  initialData?: any;
 }
 
-export default function ProductForm({ onSuccess, onCancel }: ProductFormProps) {
+export default function ProductForm({ onSuccess, onCancel, initialData }: ProductFormProps) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    name: '',
-    brand: '',
-    category: '',
-    description: '',
-    costPrice: 0,
-    salePrice: 0,
-    stock: 0,
-    minStock: 5,
-    supplier: '',
-    active: true
+    name: initialData?.name || '',
+    brand: initialData?.brand || '',
+    category: initialData?.category || '',
+    description: initialData?.description || '',
+    costPrice: typeof initialData?.costPrice === 'number' ? initialData.costPrice : 0,
+    salePrice: typeof initialData?.price === 'number' ? initialData.price : (typeof initialData?.salePrice === 'number' ? initialData.salePrice : 0),
+    stock: typeof initialData?.stock === 'number' ? initialData.stock : 0,
+    minStock: typeof initialData?.minStock === 'number' ? initialData.minStock : 5,
+    supplier: initialData?.supplier || '',
+    active: typeof initialData?.active === 'boolean' ? initialData.active : true
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -50,7 +51,7 @@ export default function ProductForm({ onSuccess, onCancel }: ProductFormProps) {
     setLoading(true);
     try {
       const newProduct = {
-        id: generateId('product'),
+        id: initialData?.id || generateId('product'),
         ...formData,
         status: formData.stock > formData.minStock ? 'normal' : 
                 formData.stock > 0 ? 'baixo' : 'esgotado'

@@ -475,7 +475,10 @@ export default function BarberSchedule() {
                 const isToday = day.toDateString() === new Date().toDateString();
                 const dayApts = getAppointmentsForDay(day);
                 return (
-                  <div key={idx} className={`p-4 text-center border-r border-gray-600 last:border-r-0 ${isToday ? 'bg-blue-600/30' : ''}`}>
+                  <div
+                    key={day.toISOString()}
+                    className={`p-4 text-center border-r border-gray-600 last:border-r-0 ${isToday ? 'bg-blue-600/30' : ''}`}
+                  >
                     <div className="text-xs text-gray-400 mb-1">{day.toLocaleDateString('pt-BR', { weekday: 'short' })}</div>
                     <div className={`text-lg font-bold ${isToday ? 'text-blue-400' : 'text-white'}`}>
                       {day.getDate()}

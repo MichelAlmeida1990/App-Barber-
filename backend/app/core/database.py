@@ -116,7 +116,7 @@ def init_database():
         Base.metadata.create_all(bind=engine)
         logger.info("✅ Tabelas criadas com sucesso")
         
-        # Criar dados essenciais (barbearia padrão)
+        # Criar dados essenciais (admin + barbearia padrão)
         from app.models.barbershop import Barbershop
         from app.models.user import User, UserRole, UserStatus
         from passlib.context import CryptContext
@@ -126,29 +126,30 @@ def init_database():
         db = SessionLocal()
         try:
             logger.info("🔄 Verificando dados essenciais...")
+            
+            # Sempre garantir que exista o admin padrão (email/senha conhecidos)
+            # (em alguns cenários o banco já existe e só havia admin diferente)
+            admin_user = db.query(User).filter(User.email == "admin@barbearia.com").first()
+            if not admin_user:
+                logger.info("🔄 Criando usuário admin padrão...")
+                admin_user = User(
+                    email="admin@barbearia.com",
+                    hashed_password=get_password_hash("admin123"),
+                    full_name="Administrador",
+                    role=UserRole.ADMIN,
+                    status=UserStatus.ACTIVE,
+                    is_verified=True
+                )
+                db.add(admin_user)
+                db.commit()
+                db.refresh(admin_user)
+                logger.info("✅ Usuário admin criado")
+
             # Verificar se já existe barbearia com id=1
             existing_barbershop = db.query(Barbershop).filter(Barbershop.id == 1).first()
             
             if not existing_barbershop:
                 logger.info("🔄 Criando barbearia padrão...")
-                
-                # Verificar se existe usuário admin, se não criar um
-                admin_user = db.query(User).filter(User.role == UserRole.ADMIN).first()
-                
-                if not admin_user:
-                    logger.info("🔄 Criando usuário admin padrão...")
-                    admin_user = User(
-                        email="admin@barbearia.com",
-                        hashed_password=get_password_hash("admin123"),
-                        full_name="Administrador",
-                        role=UserRole.ADMIN,
-                        status=UserStatus.ACTIVE,
-                        is_verified=True
-                    )
-                    db.add(admin_user)
-                    db.commit()
-                    db.refresh(admin_user)
-                    logger.info("✅ Usuário admin criado")
                 
                 # Criar barbearia padrão usando ORM (mais confiável)
                 opening_hours_data = {

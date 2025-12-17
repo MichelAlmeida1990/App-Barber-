@@ -12,6 +12,9 @@ import {
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
+const ADMIN_CLIENTS_LS_KEY = 'admin_clients_v1';
+const ADMIN_APPOINTMENTS_LS_KEY = 'admin_appointments_v1';
+
 interface ClientAtRisk {
   client: {
     client_id: number;
@@ -75,15 +78,136 @@ export default function RetentionPage() {
         const data = await response.json();
         setStats(data);
       } else {
-        console.error('Erro ao carregar estatísticas de retenção');
-        toast.error('Erro ao carregar dados de retenção');
+        // fallback local (cliente/agendamento em localStorage)
+        console.warn('Fallback: calculando retenção localmente');
+        const local = computeRetentionFromLocalStorage();
+        setStats(local);
       }
     } catch (error) {
-      console.error('Erro ao carregar estatísticas:', error);
-      toast.error('Erro ao conectar com o servidor');
+      console.warn('Fallback: calculando retenção localmente (erro ao chamar API)', error);
+      const local = computeRetentionFromLocalStorage();
+      setStats(local);
     } finally {
       setLoading(false);
     }
+  };
+
+  const computeRetentionFromLocalStorage = (): RetentionStats => {
+    const safeRead = <T,>(key: string, fallback: T): T => {
+      try {
+        const raw = localStorage.getItem(key);
+        if (!raw) return fallback;
+        return JSON.parse(raw) as T;
+      } catch {
+        return fallback;
+      }
+    };
+
+    const clients = safeRead<any[]>(ADMIN_CLIENTS_LS_KEY, []);
+    const appointments = safeRead<any[]>(ADMIN_APPOINTMENTS_LS_KEY, []);
+
+    // Última visita: maior data entre agendamentos concluídos do cliente
+    const lastVisitByName = new Map<string, string>();
+    for (const a of appointments) {
+      if (!a?.cliente || !a?.data) continue;
+      const status = String(a.status || '').toLowerCase();
+      if (status !== 'concluido' && status !== 'concluída') continue;
+      const name = String(a.cliente);
+      const date = String(a.data);
+      const prev = lastVisitByName.get(name);
+      if (!prev || date > prev) lastVisitByName.set(name, date);
+    }
+
+    const today = new Date();
+    const diffDays = (dateStr: string) => {
+      const d = new Date(dateStr + 'T00:00:00');
+      const ms = today.getTime() - d.getTime();
+      return Math.max(0, Math.floor(ms / (1000 * 60 * 60 * 24)));
+    };
+
+    let total = clients.length;
+    let active = 0;
+    let atRisk = 0;
+    let inactive = 0;
+    let newClients = 0;
+    let avgReturnSum = 0;
+    let avgReturnCount = 0;
+
+    const clientsAtRisk: ClientAtRisk[] = [];
+
+    for (const c of clients) {
+      const name = String(c.name || c.client_name || '');
+      if (!name) continue;
+      const last = lastVisitByName.get(name) || (c.lastVisit ?? null);
+
+      // "novo" se não tem lastVisit
+      if (!last) {
+        newClients++;
+        atRisk++;
+        clientsAtRisk.push({
+          client: {
+            client_id: Number(String(c.id || 0).replace(/\D/g, '') || 0),
+            client_name: name,
+            last_visit_date: null,
+            days_since_last_visit: null,
+            average_return_days: null,
+            total_visits: 0,
+            risk_level: 'medium',
+            is_at_risk: true,
+            next_expected_visit: null,
+            barber_name: null,
+          },
+          suggested_action: 'Cadastrar primeira visita / agendar retorno',
+          days_overdue: null,
+        });
+        continue;
+      }
+
+      const days = diffDays(last);
+      // classificação simples:
+      // ativo: <=30, risco: 31-60, inativo: >60
+      if (days <= 30) active++;
+      else if (days <= 60) atRisk++;
+      else inactive++;
+
+      avgReturnSum += days;
+      avgReturnCount++;
+
+      const risk_level = days > 60 ? 'critical' : days > 30 ? 'high' : 'low';
+      if (risk_level === 'high' || risk_level === 'critical') {
+        clientsAtRisk.push({
+          client: {
+            client_id: Number(String(c.id || 0).replace(/\D/g, '') || 0),
+            client_name: name,
+            last_visit_date: last,
+            days_since_last_visit: days,
+            average_return_days: null,
+            total_visits: 0,
+            risk_level,
+            is_at_risk: true,
+            next_expected_visit: null,
+            barber_name: null,
+          },
+          suggested_action: risk_level === 'critical' ? 'Contato urgente (WhatsApp) + oferta' : 'Reativação (mensagem) + lembrete',
+          days_overdue: days > 30 ? days - 30 : 0,
+        });
+      }
+    }
+
+    // taxa retenção (ativos / total)
+    const retentionRate = total > 0 ? (active / total) * 100 : 0;
+    const avgReturn = avgReturnCount > 0 ? avgReturnSum / avgReturnCount : null;
+
+    return {
+      total_clients: total,
+      active_clients: active,
+      at_risk_clients: atRisk,
+      inactive_clients: inactive,
+      new_clients: newClients,
+      retention_rate: retentionRate,
+      average_return_days: avgReturn,
+      clients_at_risk: clientsAtRisk.slice(0, 20),
+    };
   };
 
   const getRiskColor = (riskLevel: string) => {

@@ -74,3 +74,5 @@ class BarberBlock(Base):
         }
 
 
+
+

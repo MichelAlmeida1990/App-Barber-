@@ -242,3 +242,5 @@ Antes de fazer merge, verificar:
 
 **⚠️ LEMBRE-SE:** Este é débito técnico, não solução permanente! Agende tempo para resolver!
 
+
+

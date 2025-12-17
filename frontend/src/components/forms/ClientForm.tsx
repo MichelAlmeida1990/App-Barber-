@@ -7,17 +7,18 @@ import { generateId } from '@/lib/utils';
 interface ClientFormProps {
   onSuccess: (client: any) => void;
   onCancel: () => void;
+  initialData?: any;
 }
 
-export default function ClientForm({ onSuccess, onCancel }: ClientFormProps) {
+export default function ClientForm({ onSuccess, onCancel, initialData }: ClientFormProps) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    birthDate: '',
-    address: '',
-    notes: ''
+    name: initialData?.name || '',
+    email: initialData?.email || '',
+    phone: initialData?.phone || '',
+    birthDate: initialData?.birthDate || '',
+    address: initialData?.address || '',
+    notes: initialData?.notes || ''
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -40,7 +41,7 @@ export default function ClientForm({ onSuccess, onCancel }: ClientFormProps) {
     try {
       // Simulando criação do cliente (substitua pela chamada real da API)
       const newClient = {
-        id: generateId('client'),
+        id: initialData?.id || generateId('client'),
         ...formData,
         lastVisit: new Date().toISOString().split('T')[0],
         totalVisits: 0,

@@ -7,17 +7,18 @@ import { generateId } from '@/lib/utils';
 interface ServiceFormProps {
   onSuccess: (service: any) => void;
   onCancel: () => void;
+  initialData?: any;
 }
 
-export default function ServiceForm({ onSuccess, onCancel }: ServiceFormProps) {
+export default function ServiceForm({ onSuccess, onCancel, initialData }: ServiceFormProps) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    price: 0,
-    duration: 30,
-    category: '',
-    active: true
+    name: initialData?.name || '',
+    description: initialData?.description || '',
+    price: typeof initialData?.price === 'number' ? initialData.price : 0,
+    duration: typeof initialData?.duration === 'number' ? initialData.duration : 30,
+    category: initialData?.category || '',
+    active: typeof initialData?.active === 'boolean' ? initialData.active : true
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -41,7 +42,7 @@ export default function ServiceForm({ onSuccess, onCancel }: ServiceFormProps) {
     setLoading(true);
     try {
       const newService = {
-        id: generateId('service'),
+        id: initialData?.id || generateId('service'),
         ...formData,
         popularity: 0
       };

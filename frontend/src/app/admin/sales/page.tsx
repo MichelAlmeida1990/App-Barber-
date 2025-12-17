@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import AdminLayout from '@/components/AdminLayout';
 import { IconFallback } from '@/components/IconFallback';
 import { 
@@ -15,6 +15,8 @@ import {
 import { salesAPI } from '@/lib/api';
 import toast from 'react-hot-toast';
 import SaleForm from '@/components/forms/SaleForm';
+
+const ADMIN_SALES_LS_KEY = 'admin_sales_v1';
 
 // Dados mock para demonstração
 const mockSales = [
@@ -87,13 +89,43 @@ const statusOptions = [
 ];
 
 export default function SalesPage() {
-  const [sales, setSales] = useState(mockSales);
+  const [hydrated, setHydrated] = useState(false);
+  const [sales, setSales] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
   const [dateFilter, setDateFilter] = useState('');
   const [loading, setLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedSale, setSelectedSale] = useState(null);
+  const [selectedSale, setSelectedSale] = useState<any | null>(null);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(ADMIN_SALES_LS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) setSales(parsed);
+        else setSales(mockSales);
+      } else {
+        setSales(mockSales);
+      }
+    } catch (e) {
+      console.warn('Falha ao ler vendas do localStorage:', e);
+      setSales(mockSales);
+    } finally {
+      setHydrated(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      localStorage.setItem(ADMIN_SALES_LS_KEY, JSON.stringify(sales));
+      // Notificar outras telas no MESMO TAB (o evento "storage" não dispara no mesmo documento)
+      window.dispatchEvent(new Event('admin_sales_updated'));
+    } catch (e) {
+      console.warn('Falha ao salvar vendas no localStorage:', e);
+    }
+  }, [hydrated, sales]);
 
   // Filtrar vendas
   const filteredSales = sales.filter(sale => {
@@ -170,11 +202,11 @@ export default function SalesPage() {
 
       if (selectedSale) {
         // Atualizar venda existente
-        setSales(prev => prev.map(s => s.id === selectedSale.id ? { ...newSale, id: selectedSale.id } : s));
+        setSales((prev: any[]) => prev.map((s: any) => s.id === selectedSale.id ? { ...newSale, id: selectedSale.id } : s));
         toast.success('✅ Venda atualizada com sucesso!');
       } else {
         // Adicionar nova venda
-        setSales(prev => [...prev, newSale]);
+        setSales((prev: any[]) => [...prev, newSale]);
         toast.success('✅ Nova venda registrada com sucesso!');
       }
 

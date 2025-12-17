@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { IconFallback } from './IconFallback';
 
 interface SidebarProps {
@@ -10,6 +11,7 @@ interface SidebarProps {
 
 export default function Sidebar({ className = '' }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const router = useRouter();
 
   const menuItems = [
     {
@@ -134,6 +136,39 @@ export default function Sidebar({ className = '' }: SidebarProps) {
 
         {/* Footer */}
         <div className="p-4 border-t border-gray-700">
+          <div className={`mb-3 ${isCollapsed ? 'flex justify-center' : ''}`}>
+            <Link
+              href="/"
+              className={`inline-flex items-center justify-center gap-2 w-full px-3 py-2 rounded-lg bg-gray-800 text-gray-200 hover:bg-gray-700 hover:text-white transition-colors ${
+                isCollapsed ? 'w-10 h-10 p-0' : ''
+              }`}
+              title="Voltar para a página principal"
+            >
+              <IconFallback type="barber-chair" size="sm" className="text-yellow-400" />
+              {!isCollapsed && <span className="text-sm font-medium">Voltar ao site</span>}
+            </Link>
+          </div>
+
+          <div className={`${isCollapsed ? 'flex justify-center' : ''}`}>
+            <button
+              type="button"
+              onClick={() => {
+                try {
+                  localStorage.removeItem('token');
+                  localStorage.removeItem('user');
+                } catch {}
+                router.push('/admin/login');
+              }}
+              className={`inline-flex items-center justify-center gap-2 w-full px-3 py-2 rounded-lg bg-red-600/20 text-red-200 hover:bg-red-600/30 hover:text-white transition-colors ${
+                isCollapsed ? 'w-10 h-10 p-0' : ''
+              }`}
+              title="Sair do admin"
+            >
+              <IconFallback type="razor" size="sm" className="text-red-300" />
+              {!isCollapsed && <span className="text-sm font-medium">Sair</span>}
+            </button>
+          </div>
+
           {!isCollapsed ? (
             <div className="text-center">
               <p className="text-gray-400 text-xs mb-2">Sistema Online</p>

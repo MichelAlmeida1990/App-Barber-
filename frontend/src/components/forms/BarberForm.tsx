@@ -7,19 +7,20 @@ import { generateId } from '@/lib/utils';
 interface BarberFormProps {
   onSuccess: (barber: any) => void;
   onCancel: () => void;
+  initialData?: any;
 }
 
-export default function BarberForm({ onSuccess, onCancel }: BarberFormProps) {
+export default function BarberForm({ onSuccess, onCancel, initialData }: BarberFormProps) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    specialty: '',
-    experience: '',
-    commission: 35,
-    schedule: '',
-    notes: ''
+    name: initialData?.name || '',
+    email: initialData?.email || '',
+    phone: initialData?.phone || '',
+    specialty: initialData?.specialty || '',
+    experience: initialData?.experience || '',
+    commission: typeof initialData?.commission === 'number' ? initialData.commission : 35,
+    schedule: initialData?.schedule || '',
+    notes: initialData?.notes || ''
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -41,7 +42,7 @@ export default function BarberForm({ onSuccess, onCancel }: BarberFormProps) {
     setLoading(true);
     try {
       const newBarber = {
-        id: generateId('barber'),
+        id: initialData?.id || generateId('barber'),
         ...formData,
         rating: 5.0,
         totalCuts: 0,

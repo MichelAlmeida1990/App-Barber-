@@ -15,7 +15,9 @@ PyJWT==2.10.1
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 python-multipart==0.0.20
-bcrypt==4.2.1
+# passlib 1.7.4 não é compatível com bcrypt >= 4.1 (removeu bcrypt.__about__)
+# Fix: manter bcrypt < 4.1
+bcrypt==4.0.1
 
 # Data Validation
 pydantic==2.10.4

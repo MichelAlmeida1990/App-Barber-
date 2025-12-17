@@ -1,25 +1,62 @@
 'use client';
 
-import { useState} from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { generateId } from '@/lib/utils';
 
 interface AppointmentFormProps {
   onSuccess: (appointment: any) => void;
   onCancel: () => void;
+  onGoToClientCadastro?: () => void;
+  initialData?: any;
 }
 
-export default function AppointmentForm({ onSuccess, onCancel }: AppointmentFormProps) {
+type StoredClient = {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  status?: 'ativo' | 'inativo';
+};
+
+const ADMIN_CLIENTS_LS_KEY = 'admin_clients_v1';
+
+export default function AppointmentForm({ onSuccess, onCancel, onGoToClientCadastro, initialData }: AppointmentFormProps) {
   const [loading, setLoading] = useState(false);
+  const [clients, setClients] = useState<StoredClient[]>([]);
   const [formData, setFormData] = useState({
-    clientName: '',
-    clientPhone: '',
-    barberId: '',
-    serviceId: '',
-    date: '',
-    time: '',
-    notes: ''
+    clientId: initialData?.clientId || '',
+    barberId: initialData?.barberId || '',
+    serviceId: initialData?.serviceId || '',
+    date: initialData?.date || '',
+    time: initialData?.time || '',
+    notes: initialData?.notes || ''
   });
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(ADMIN_CLIENTS_LS_KEY);
+      if (!raw) {
+        setClients([]);
+        return;
+      }
+      const parsed = JSON.parse(raw) as StoredClient[];
+      if (!Array.isArray(parsed)) {
+        setClients([]);
+        return;
+      }
+      const active = parsed.filter((c) => (c.status ? c.status === 'ativo' : true));
+      setClients(active);
+    } catch (e) {
+      console.warn('Falha ao ler clientes do localStorage:', e);
+      setClients([]);
+    }
+  }, []);
+
+  const selectedClient = useMemo(
+    () => clients.find((c) => c.id === formData.clientId),
+    [clients, formData.clientId]
+  );
 
   // Mock data - em produção, carregue da API
   const mockBarbers = [
@@ -61,8 +98,13 @@ export default function AppointmentForm({ onSuccess, onCancel }: AppointmentForm
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.clientName || !formData.clientPhone || !formData.barberId || !formData.serviceId || !formData.date || !formData.time) {
-      toast.error('Todos os campos obrigatórios devem ser preenchidos');
+    if (clients.length === 0) {
+      toast.error('Cadastre um cliente antes de agendar');
+      return;
+    }
+
+    if (!formData.clientId || !formData.barberId || !formData.serviceId || !formData.date || !formData.time) {
+      toast.error('Selecione o cliente e preencha os campos obrigatórios');
       return;
     }
 
@@ -72,11 +114,14 @@ export default function AppointmentForm({ onSuccess, onCancel }: AppointmentForm
       const selectedBarber = mockBarbers.find(b => b.id === formData.barberId);
 
       const newAppointment = {
-        id: generateId('appointment'),
-        clientName: formData.clientName,
-        phone: formData.clientPhone,
+        id: initialData?.id || generateId('appointment'),
+        clientId: formData.clientId,
+        clientName: selectedClient?.name || '',
+        phone: selectedClient?.phone || '',
         barberName: selectedBarber?.name || '',
         service: selectedService?.name || '',
+        barberId: formData.barberId,
+        serviceId: formData.serviceId,
         date: formData.date,
         time: formData.time,
         duration: selectedService?.duration || 30,
@@ -100,37 +145,61 @@ export default function AppointmentForm({ onSuccess, onCancel }: AppointmentForm
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
+      {clients.length === 0 ? (
+        <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
+          <p className="text-sm text-yellow-800">
+            Para criar um agendamento, primeiro você precisa <b>cadastrar um cliente</b>.
+          </p>
+          <div className="mt-3 flex flex-col sm:flex-row gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                onCancel();
+                onGoToClientCadastro?.();
+              }}
+              className="inline-flex items-center justify-center px-4 py-2 rounded-md bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
+            >
+              Ir para cadastro de cliente
+            </button>
+            <button
+              type="button"
+              onClick={onCancel}
+              className="inline-flex items-center justify-center px-4 py-2 rounded-md border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2">
         <div>
-          <label htmlFor="clientName" className="block text-sm font-medium text-gray-700">
-            Nome do Cliente *
+          <label htmlFor="clientId" className="block text-sm font-medium text-gray-700">
+            Cliente *
           </label>
-          <input
-            type="text"
-            name="clientName"
-            id="clientName"
+          <select
+            name="clientId"
+            id="clientId"
             required
-            value={formData.clientName}
+            value={formData.clientId}
             onChange={handleInputChange}
-            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-sm shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-            placeholder="Nome completo do cliente"
-          />
+            disabled={clients.length === 0}
+            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+          >
+            <option value="">Selecione um cliente</option>
+            {clients.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}{c.phone ? ` — ${c.phone}` : ''}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div>
-          <label htmlFor="clientPhone" className="block text-sm font-medium text-gray-700">
-            Telefone do Cliente *
-          </label>
-          <input
-            type="tel"
-            name="clientPhone"
-            id="clientPhone"
-            required
-            value={formData.clientPhone}
-            onChange={handleInputChange}
-            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-sm shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-            placeholder="(11) 99999-9999"
-          />
+          <label className="block text-sm font-medium text-gray-700">Telefone</label>
+          <div className="mt-1 block w-full border border-gray-200 rounded-md px-3 py-2 text-sm bg-gray-50 text-gray-700">
+            {selectedClient?.phone || '—'}
+          </div>
         </div>
 
         <div>

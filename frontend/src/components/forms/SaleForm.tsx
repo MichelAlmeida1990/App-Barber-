@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { IconFallback } from '../IconFallback';
 import toast from 'react-hot-toast';
@@ -10,6 +10,11 @@ interface SaleFormProps {
   onCancel: () => void;
   initialData?: any;
 }
+
+const ADMIN_BARBERS_LS_KEY = 'admin_barbers_v1';
+const ADMIN_SERVICES_LS_KEY = 'admin_services_v1';
+const ADMIN_PRODUCTS_LS_KEY = 'admin_products_v1';
+const ADMIN_CLIENTS_LS_KEY = 'admin_clients_v1';
 
 const servicosDisponiveis = [
   { id: '1', nome: 'Corte Masculino', preco: 45.00 },
@@ -61,6 +66,58 @@ export default function SaleForm({ onSubmit, onCancel, initialData }: SaleFormPr
 
   const [servicosSelecionados, setServicosSelecionados] = useState<any[]>([]);
   const [produtosSelecionados, setProdutosSelecionados] = useState<any[]>([]);
+
+  // fontes "amarradas" com cadastros do admin (localStorage)
+  const [barbeirosFonte, setBarbeirosFonte] = useState<{ id: string; nome: string }[]>(barbeiros);
+  const [servicosFonte, setServicosFonte] = useState<{ id: string; nome: string; preco: number }[]>(servicosDisponiveis);
+  const [produtosFonte, setProdutosFonte] = useState<{ id: string; nome: string; preco: number }[]>(produtosDisponiveis);
+  const [clientesFonte, setClientesFonte] = useState<{ id: string; nome: string }[]>([]);
+
+  useEffect(() => {
+    const safeRead = <T,>(key: string, fallback: T): T => {
+      try {
+        const raw = localStorage.getItem(key);
+        if (!raw) return fallback;
+        return JSON.parse(raw) as T;
+      } catch {
+        return fallback;
+      }
+    };
+
+    // Barbeiros
+    const b = safeRead<any[]>(ADMIN_BARBERS_LS_KEY, []);
+    const barbersNorm = (Array.isArray(b) ? b : [])
+      .map((x) => ({ id: String(x?.id ?? ''), nome: String(x?.name ?? x?.nome ?? '') }))
+      .filter((x) => x.id && x.nome);
+    if (barbersNorm.length > 0) setBarbeirosFonte(barbersNorm);
+
+    // Serviços
+    const s = safeRead<any[]>(ADMIN_SERVICES_LS_KEY, []);
+    const servicesNorm = (Array.isArray(s) ? s : [])
+      .map((x) => ({ id: String(x?.id ?? ''), nome: String(x?.name ?? x?.nome ?? ''), preco: Number(x?.price ?? x?.preco ?? 0) }))
+      .filter((x) => x.id && x.nome && Number.isFinite(x.preco) && x.preco > 0);
+    if (servicesNorm.length > 0) setServicosFonte(servicesNorm);
+
+    // Produtos
+    const p = safeRead<any[]>(ADMIN_PRODUCTS_LS_KEY, []);
+    const productsNorm = (Array.isArray(p) ? p : [])
+      .map((x) => ({ id: String(x?.id ?? ''), nome: String(x?.name ?? x?.nome ?? ''), preco: Number(x?.price ?? x?.salePrice ?? x?.preco ?? 0) }))
+      .filter((x) => x.id && x.nome && Number.isFinite(x.preco) && x.preco > 0);
+    if (productsNorm.length > 0) setProdutosFonte(productsNorm);
+
+    // Clientes (opcional: sugerir)
+    const c = safeRead<any[]>(ADMIN_CLIENTS_LS_KEY, []);
+    const clientsNorm = (Array.isArray(c) ? c : [])
+      .map((x) => ({ id: String(x?.id ?? ''), nome: String(x?.name ?? x?.cliente_nome ?? '') }))
+      .filter((x) => x.id && x.nome);
+    setClientesFonte(clientsNorm);
+  }, []);
+
+  const clientesSugeridos = useMemo(() => {
+    const term = formData.cliente_nome.trim().toLowerCase();
+    if (!term || term.length < 2) return [];
+    return clientesFonte.filter((c) => c.nome.toLowerCase().includes(term)).slice(0, 6);
+  }, [clientesFonte, formData.cliente_nome]);
 
   // Calcular valores
   const valorServicos = servicosSelecionados.reduce((acc, s) => acc + (s.preco * s.quantidade), 0);
@@ -175,6 +232,21 @@ export default function SaleForm({ onSubmit, onCancel, initialData }: SaleFormPr
                 className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500"
                 placeholder="Nome completo do cliente"
               />
+              {clientesSugeridos.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {clientesSugeridos.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => setFormData((prev) => ({ ...prev, cliente_nome: c.nome }))}
+                      className="px-2 py-1 rounded-md text-xs bg-gray-100 hover:bg-gray-200 text-gray-700"
+                      title="Usar cliente cadastrado"
+                    >
+                      {c.nome}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div>
@@ -188,7 +260,7 @@ export default function SaleForm({ onSubmit, onCancel, initialData }: SaleFormPr
                 className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-red-500 focus:border-red-500"
               >
                 <option value="">Selecione o barbeiro</option>
-                {barbeiros.map(barbeiro => (
+                {barbeirosFonte.map(barbeiro => (
                   <option key={barbeiro.id} value={barbeiro.nome}>
                     {barbeiro.nome}
                   </option>
@@ -206,7 +278,7 @@ export default function SaleForm({ onSubmit, onCancel, initialData }: SaleFormPr
                 Adicionar Serviço
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {servicosDisponiveis.map(servico => (
+                {servicosFonte.map(servico => (
                   <button
                     key={servico.id}
                     type="button"
@@ -263,7 +335,7 @@ export default function SaleForm({ onSubmit, onCancel, initialData }: SaleFormPr
                 Adicionar Produto
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {produtosDisponiveis.map(produto => (
+                {produtosFonte.map(produto => (
                   <button
                     key={produto.id}
                     type="button"

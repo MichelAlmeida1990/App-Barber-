@@ -69,7 +69,7 @@ export default function AdminDashboard() {
   const [apiStatus, setApiStatus] = useState('🔄 Verificando conexão...');
   const [loading, setLoading] = useState(false);
   const [clientsAtRisk, setClientsAtRisk] = useState<ClientAtRisk[]>([]);
-  const [ setLoadingRisk] = useState(false);
+  const [loadingRisk, setLoadingRisk] = useState(false);
 
   const testApiConnection = async () => {
     setLoading(true);

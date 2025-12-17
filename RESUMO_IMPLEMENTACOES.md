@@ -212,3 +212,5 @@ O sistema pode ser usado em produção seguindo o checklist de segurança e conf
 **Próxima Ação:** Criar interface frontend para bloqueios de agenda
 
 
+
+

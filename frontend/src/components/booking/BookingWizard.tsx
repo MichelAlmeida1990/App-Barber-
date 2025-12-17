@@ -25,7 +25,8 @@ interface Service {
   price: number;
   duration_minutes: number;
   description: string;
-  category: string;
+  // Em algumas telas (ex.: dashboard do cliente) o serviço vem sem categoria.
+  category?: string;
 }
 
 interface BookingWizardProps {
@@ -293,7 +294,7 @@ export default function BookingWizard({ barbers, services, onClose, onComplete }
                     </span>
                   </div>
                   <span className="inline-block mt-2 text-xs bg-gray-700 text-gray-300 px-2 py-1 rounded">
-                    {service.category}
+                    {service.category ?? 'Serviço'}
                   </span>
                 </button>
               ))}

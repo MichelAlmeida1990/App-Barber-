@@ -145,3 +145,5 @@ Tente fazer login com Google. A mensagem de erro agora será mais específica.
 
 **Última Atualização:** 15/12/2025
 
+
+
