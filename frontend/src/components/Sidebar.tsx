@@ -13,6 +13,7 @@ export default function Sidebar({ className = '' }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const router = useRouter();
 
+  // Menu completo com todas as páginas admin (v2.0 - rebuild forçado)
   const menuItems = [
     {
       label: 'Dashboard',
