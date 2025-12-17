@@ -71,13 +71,18 @@ export function useAdminAuth() {
   const validateToken = async (token: string): Promise<boolean> => {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      // Timeout de 3 segundos para não travar
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      
       const response = await fetch(`${apiUrl}/api/v1/auth/me`, {
         headers: {
           'Authorization': `Bearer ${token}`
         },
-        // Timeout de 3 segundos para não travar
-        signal: AbortSignal.timeout(3000)
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
       return response.ok;
     } catch (error) {
       // Se der erro (rede, timeout, etc), retorna false mas não bloqueia
