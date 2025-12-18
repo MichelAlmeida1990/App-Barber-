@@ -11,8 +11,14 @@ import BarberForm from '@/components/forms/BarberForm';
 type Barber = {
   id: string;
   name: string;
+  email?: string;
   phone?: string;
+  specialty?: string;
   specialties: string[];
+  experience?: string;
+  commission?: number;
+  schedule?: string;
+  notes?: string;
   active: boolean;
 };
 
@@ -39,18 +45,19 @@ export default function AdminBarbersPage() {
       if (raw) {
         const parsed = JSON.parse(raw) as Barber[];
         if (Array.isArray(parsed) && parsed.length > 0) {
+          // PRIORIDADE TOTAL: usar dados reais do localStorage
           setItems(parsed);
         } else {
-          // Se não existe nada salvo, iniciamos com mock apenas para não deixar a tela vazia.
-          // IMPORTANTE: isso NÃO sobrescreve o storage automaticamente (só após hidratar).
-          setItems(mockBarbers);
+          // Só usar mock se realmente não houver NADA salvo
+          setItems([]);
         }
       } else {
-        setItems(mockBarbers);
+        // Não usar mock, deixar vazio para forçar cadastro real
+        setItems([]);
       }
     } catch (e) {
       console.warn('Falha ao ler barbeiros do localStorage:', e);
-      setItems(mockBarbers);
+      setItems([]);
     } finally {
       setHydrated(true);
     }
@@ -60,10 +67,12 @@ export default function AdminBarbersPage() {
     if (!hydrated) return;
     try {
       localStorage.setItem(ADMIN_BARBERS_LS_KEY, JSON.stringify(items));
+      // Notificar outras telas no MESMO TAB (o evento "storage" não dispara no mesmo documento)
+      window.dispatchEvent(new Event('admin_barbers_updated'));
     } catch (e) {
       console.warn('Falha ao salvar barbeiros no localStorage:', e);
     }
-  }, [items]);
+  }, [hydrated, items]);
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -94,12 +103,18 @@ export default function AdminBarbersPage() {
     const normalized: Barber = {
       id: barber.id,
       name: barber.name,
+      email: barber.email,
       phone: barber.phone,
+      specialty: barber.specialty,
       specialties: Array.isArray(barber.specialties)
         ? barber.specialties
         : barber.specialty
           ? [String(barber.specialty)]
           : [],
+      experience: barber.experience,
+      commission: barber.commission,
+      schedule: barber.schedule,
+      notes: barber.notes,
       active: barber.status ? barber.status === 'ativo' : barber.active ?? true,
     };
 
@@ -109,6 +124,7 @@ export default function AdminBarbersPage() {
     });
     setIsModalOpen(false);
     setEditingBarber(null);
+    toast.success(editingBarber ? 'Barbeiro atualizado com sucesso!' : 'Barbeiro criado com sucesso!');
   };
 
   const handleDeleteBarber = (id: string) => {
@@ -175,69 +191,110 @@ export default function AdminBarbersPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {filtered.map((b) => (
-          <div key={b.id} className="bg-white shadow rounded-lg p-5 border border-gray-100">
-            <div className="flex items-start justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">{b.name}</h3>
-                {b.phone ? (
-                  <div className="mt-1 flex items-center text-sm text-gray-600">
-                    <PhoneIcon className="h-4 w-4 mr-2 text-gray-400" />
-                    {b.phone}
-                  </div>
-                ) : null}
-              </div>
-              <div className="flex items-center gap-2">
-                <span className={`inline-flex px-2 py-1 rounded-full text-xs font-semibold ${b.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                  {b.active ? 'ativo' : 'inativo'}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditingBarber({
-                      id: b.id,
-                      name: b.name,
-                      phone: b.phone,
-                      specialty: b.specialties?.[0] || '',
-                      status: b.active ? 'ativo' : 'inativo',
-                    });
-                    setIsModalOpen(true);
-                  }}
-                  className="text-indigo-600 hover:text-indigo-900"
-                  title="Editar"
-                >
-                  <PencilIcon className="h-5 w-5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDeleteBarber(b.id)}
-                  className="text-red-600 hover:text-red-900"
-                  title="Excluir"
-                >
-                  <TrashIcon className="h-5 w-5" />
-                </button>
-              </div>
-            </div>
-            <div className="mt-3">
-              <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Especialidades</p>
-              <div className="flex flex-wrap gap-2">
-                {b.specialties.map((s) => (
-                  <span key={s} className="inline-flex px-2 py-1 rounded-md text-xs bg-indigo-50 text-indigo-700">
-                    {s}
+      {filtered.length === 0 ? (
+        <div className="bg-white shadow rounded-lg p-8 text-center text-sm text-gray-500">
+          Nenhum barbeiro encontrado.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {filtered.map((b) => (
+            <div key={b.id} className="bg-white shadow rounded-lg p-4 sm:p-5 border border-gray-100">
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate">{b.name}</h3>
+                  {b.email && (
+                    <div className="mt-1 text-xs sm:text-sm text-gray-600 truncate">{b.email}</div>
+                  )}
+                  {b.phone ? (
+                    <div className="mt-1 flex items-center text-xs sm:text-sm text-gray-600">
+                      <PhoneIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 text-gray-400 flex-shrink-0" />
+                      <span className="truncate">{b.phone}</span>
+                    </div>
+                  ) : null}
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                  <span className={`inline-flex px-2 py-1 rounded-full text-xs font-semibold ${b.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                    {b.active ? 'ativo' : 'inativo'}
                   </span>
-                ))}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingBarber({
+                        id: b.id,
+                        name: b.name,
+                        email: b.email || '',
+                        phone: b.phone || '',
+                        specialty: b.specialty || b.specialties?.[0] || '',
+                        experience: b.experience || '',
+                        commission: b.commission || 35,
+                        schedule: b.schedule || '',
+                        notes: b.notes || '',
+                        status: b.active ? 'ativo' : 'inativo',
+                      });
+                      setIsModalOpen(true);
+                    }}
+                    className="p-1.5 sm:p-2 text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50 rounded-md transition-colors"
+                    title="Editar"
+                  >
+                    <PencilIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteBarber(b.id)}
+                    className="p-1.5 sm:p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-md transition-colors"
+                    title="Excluir"
+                  >
+                    <TrashIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+                  </button>
+                </div>
               </div>
-            </div>
-          </div>
-        ))}
+              
+              {b.specialties && b.specialties.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-gray-200">
+                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Especialidades</p>
+                  <div className="flex flex-wrap gap-2">
+                    {b.specialties.map((s) => (
+                      <span key={s} className="inline-flex px-2 py-1 rounded-md text-xs bg-indigo-50 text-indigo-700">
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-        {filtered.length === 0 && (
-          <div className="bg-white shadow rounded-lg p-8 text-center text-sm text-gray-500 md:col-span-2 xl:col-span-3">
-            Nenhum barbeiro encontrado.
-          </div>
-        )}
-      </div>
+              {(b.experience || b.commission || b.schedule) && (
+                <div className="mt-3 pt-3 border-t border-gray-200 space-y-1">
+                  {b.experience && (
+                    <div className="text-xs">
+                      <span className="text-gray-600">Experiência: </span>
+                      <span className="text-gray-900 font-medium">{b.experience}</span>
+                    </div>
+                  )}
+                  {b.commission && (
+                    <div className="text-xs">
+                      <span className="text-gray-600">Comissão: </span>
+                      <span className="text-gray-900 font-medium">{b.commission}%</span>
+                    </div>
+                  )}
+                  {b.schedule && (
+                    <div className="text-xs">
+                      <span className="text-gray-600">Horário: </span>
+                      <span className="text-gray-900 font-medium">{b.schedule}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {b.notes && (
+                <div className="mt-3 pt-3 border-t border-gray-200">
+                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Observações</p>
+                  <p className="text-xs text-gray-700 line-clamp-2">{b.notes}</p>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       <Modal
         isOpen={isModalOpen}

@@ -1,0 +1,41 @@
+{
+  "folders": [
+    {
+      "path": ".",
+      "name": "App Barbearia - Raiz"
+    },
+    {
+      "path": "./frontend",
+      "name": "Frontend (Next.js)"
+    },
+    {
+      "path": "./backend",
+      "name": "Backend (FastAPI)"
+    }
+  ],
+  "settings": {
+    "files.exclude": {
+      "**/.git": false,
+      "**/.next": true,
+      "**/node_modules": true,
+      "**/__pycache__": true,
+      "**/.venv": true
+    },
+    "files.watcherExclude": {
+      "**/.git/objects/**": true,
+      "**/.git/subtree-cache/**": true,
+      "**/node_modules/**": true,
+      "**/.next/**": true,
+      "**/__pycache__/**": true,
+      "**/.venv/**": true
+    },
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/.next": true,
+      "**/__pycache__": true,
+      "**/.venv": true
+    }
+  }
+}
+
+

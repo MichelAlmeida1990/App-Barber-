@@ -112,6 +112,8 @@ export default function ServicesPage() {
     if (!hydrated) return;
     try {
       localStorage.setItem(ADMIN_SERVICES_LS_KEY, JSON.stringify(services));
+      // Notificar outras telas no MESMO TAB (o evento "storage" não dispara no mesmo documento)
+      window.dispatchEvent(new Event('admin_services_updated'));
     } catch (e) {
       console.warn('Falha ao salvar serviços no localStorage:', e);
     }
@@ -401,7 +403,7 @@ export default function ServicesPage() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title={editingService ? 'Editar Serviço' : 'Novo Serviço'}
-        maxWidth="xl"
+        maxWidth="2xl"
       >
         <ServiceForm
           onSuccess={handleAddService}

@@ -36,7 +36,7 @@ export default function Modal({ isOpen, onClose, title, children, maxWidth = 'lg
           <div className="fixed inset-0 bg-black bg-opacity-25" />
         </Transition.Child>
 
-        <div className="fixed inset-0 overflow-y-auto">
+        <div className="fixed inset-0 overflow-y-auto z-50">
           <div className="flex min-h-full items-center justify-center p-2 sm:p-4 text-center">
             <Transition.Child
               as={Fragment}
@@ -47,8 +47,8 @@ export default function Modal({ isOpen, onClose, title, children, maxWidth = 'lg
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className={`w-full ${maxWidthClass} max-h-[90vh] overflow-y-auto transform overflow-hidden rounded-lg sm:rounded-2xl bg-white p-4 sm:p-6 text-left align-middle shadow-xl transition-all`}>
-                <Dialog.Title as="div" className="flex items-center justify-between mb-3 sm:mb-4">
+              <Dialog.Panel className={`w-full ${maxWidthClass} max-h-[90vh] transform rounded-lg sm:rounded-2xl bg-white shadow-xl transition-all flex flex-col overflow-hidden`}>
+                <Dialog.Title as="div" className="flex items-center justify-between px-4 sm:px-6 pt-4 sm:pt-6 flex-shrink-0 border-b border-gray-200 pb-3">
                   <h3 className="text-base sm:text-lg font-medium leading-6 text-gray-900 pr-2">
                     {title}
                   </h3>
@@ -61,7 +61,14 @@ export default function Modal({ isOpen, onClose, title, children, maxWidth = 'lg
                     <XMarkIcon className="h-5 w-5 sm:h-6 sm:w-6" aria-hidden="true" />
                   </button>
                 </Dialog.Title>
-                <div className="max-h-[calc(90vh-100px)] overflow-y-auto">
+                <div 
+                  className="overflow-y-auto px-4 sm:px-6 py-4 sm:py-6 flex-1 min-h-0" 
+                  style={{ 
+                    maxHeight: 'calc(90vh - 120px)',
+                    WebkitOverflowScrolling: 'touch',
+                    scrollbarWidth: 'thin'
+                  }}
+                >
                   {children}
                 </div>
               </Dialog.Panel>

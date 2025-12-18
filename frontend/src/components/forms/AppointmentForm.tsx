@@ -58,21 +58,81 @@ export default function AppointmentForm({ onSuccess, onCancel, onGoToClientCadas
     [clients, formData.clientId]
   );
 
-  // Mock data - em produção, carregue da API
-  const mockBarbers = [
-    { id: '1', name: 'João Silva' },
-    { id: '2', name: 'Carlos Santos' },
-    { id: '3', name: 'Pedro Oliveira' }
-  ];
+  const ADMIN_BARBERS_LS_KEY = 'admin_barbers_v1';
+  const ADMIN_SERVICES_LS_KEY = 'admin_services_v1';
 
-  const mockServices = [
-    { id: '1', name: 'Corte Masculino', price: 30, duration: 30 },
-    { id: '2', name: 'Barba', price: 20, duration: 20 },
-    { id: '3', name: 'Combo Completo', price: 45, duration: 45 },
-    { id: '4', name: 'Sobrancelha', price: 15, duration: 15 },
-    { id: '5', name: 'Hidratação', price: 25, duration: 25 },
-    { id: '6', name: 'Tratamento Premium', price: 80, duration: 60 }
-  ];
+  const [barbers, setBarbers] = useState<{ id: string; name: string }[]>([]);
+  const [services, setServices] = useState<{ id: string; name: string; price: number; duration: number }[]>([]);
+
+  const loadBarbers = () => {
+    try {
+      const barbersRaw = localStorage.getItem(ADMIN_BARBERS_LS_KEY);
+      if (barbersRaw) {
+        const parsed = JSON.parse(barbersRaw) as any[];
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const activeBarbers = parsed
+            .filter(b => b.active !== false)
+            .map(b => ({ id: String(b.id), name: String(b.name || '') }))
+            .filter(b => b.id && b.name);
+          setBarbers(activeBarbers);
+        }
+      }
+    } catch (e) {
+      console.warn('Falha ao ler barbeiros do localStorage:', e);
+    }
+  };
+
+  const loadServices = () => {
+    try {
+      const servicesRaw = localStorage.getItem(ADMIN_SERVICES_LS_KEY);
+      if (servicesRaw) {
+        const parsed = JSON.parse(servicesRaw) as any[];
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const activeServices = parsed
+            .filter(s => s.active !== false)
+            .map(s => ({
+              id: String(s.id),
+              name: String(s.name || ''),
+              price: Number(s.price || 0),
+              duration: Number(s.duration || 30)
+            }))
+            .filter(s => s.id && s.name);
+          setServices(activeServices);
+        }
+      }
+    } catch (e) {
+      console.warn('Falha ao ler serviços do localStorage:', e);
+    }
+  };
+
+  useEffect(() => {
+    // Carregar dados iniciais
+    loadBarbers();
+    loadServices();
+
+    // Listener para mudanças no localStorage (de outras abas)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === ADMIN_BARBERS_LS_KEY) {
+        loadBarbers();
+      } else if (e.key === ADMIN_SERVICES_LS_KEY) {
+        loadServices();
+      }
+    };
+
+    // Listener customizado para mudanças na mesma aba
+    const handleBarbersUpdate = () => loadBarbers();
+    const handleServicesUpdate = () => loadServices();
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('admin_barbers_updated', handleBarbersUpdate);
+    window.addEventListener('admin_services_updated', handleServicesUpdate);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('admin_barbers_updated', handleBarbersUpdate);
+      window.removeEventListener('admin_services_updated', handleServicesUpdate);
+    };
+  }, []);
 
   const generateTimeSlots = () => {
     const slots = [];
@@ -110,8 +170,8 @@ export default function AppointmentForm({ onSuccess, onCancel, onGoToClientCadas
 
     setLoading(true);
     try {
-      const selectedService = mockServices.find(s => s.id === formData.serviceId);
-      const selectedBarber = mockBarbers.find(b => b.id === formData.barberId);
+      const selectedService = services.find(s => s.id === formData.serviceId);
+      const selectedBarber = barbers.find(b => b.id === formData.barberId);
 
       const newAppointment = {
         id: initialData?.id || generateId('appointment'),
@@ -141,7 +201,7 @@ export default function AppointmentForm({ onSuccess, onCancel, onGoToClientCadas
     }
   };
 
-  const selectedService = mockServices.find(s => s.id === formData.serviceId);
+  const selectedService = services.find(s => s.id === formData.serviceId);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
@@ -215,11 +275,15 @@ export default function AppointmentForm({ onSuccess, onCancel, onGoToClientCadas
             className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-sm shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
           >
             <option value="">Selecione um barbeiro</option>
-            {mockBarbers.map(barber => (
-              <option key={barber.id} value={barber.id}>
-                {barber.name}
-              </option>
-            ))}
+            {barbers.length > 0 ? (
+              barbers.map(barber => (
+                <option key={barber.id} value={barber.id}>
+                  {barber.name}
+                </option>
+              ))
+            ) : (
+              <option value="" disabled>Nenhum barbeiro cadastrado</option>
+            )}
           </select>
         </div>
 
@@ -236,11 +300,15 @@ export default function AppointmentForm({ onSuccess, onCancel, onGoToClientCadas
             className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-sm shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
           >
             <option value="">Selecione um serviço</option>
-            {mockServices.map(service => (
-              <option key={service.id} value={service.id}>
-                {service.name} - R$ {service.price} ({service.duration}min)
-              </option>
-            ))}
+            {services.length > 0 ? (
+              services.map(service => (
+                <option key={service.id} value={service.id}>
+                  {service.name} - R$ {service.price.toFixed(2)} ({service.duration}min)
+                </option>
+              ))
+            ) : (
+              <option value="" disabled>Nenhum serviço cadastrado</option>
+            )}
           </select>
         </div>
 

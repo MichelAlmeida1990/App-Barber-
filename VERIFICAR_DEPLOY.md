@@ -19,3 +19,4 @@ Todos os arquivos existem em: `C:\Projetos\App barbearia\frontend\src\app\admin\
 3. Verificar se as rotas `/admin/sales`, `/admin/analytics`, `/admin/commissions`, `/admin/retention` estão acessíveis
 4. Se não aparecer, forçar redeploy manual no Vercel
 
+

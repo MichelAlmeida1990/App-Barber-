@@ -205,9 +205,9 @@ export default function AdminLogin() {
         <div className="text-center mt-8 text-gray-400 text-sm">
           <div className="flex justify-center items-center mb-2">
             <IconFallback type="barber-pole" size="sm" className="mr-2 opacity-50" />
-            <span>Sistema Administrativo - Barbershop Manager</span>
+            <span>Sistema Administrativo - BARBEARIA DO DUDÃO</span>
           </div>
-          <p>© 2024 Barbershop Manager. Todos os direitos reservados.</p>
+          <p>© 2024 BARBEARIA DO DUDÃO - Since 2020. Todos os direitos reservados.</p>
         </div>
       </div>
     </div>
