@@ -491,15 +491,15 @@ export default function AdminAnalyticsPage() {
       </div>
 
       {/* Modal de Despesa */}
-      {isExpenseModalOpen && (
-        <Modal
-          title={selectedExpense ? 'Editar Despesa' : 'Nova Despesa'}
-          onClose={() => {
-            setIsExpenseModalOpen(false);
-            setSelectedExpense(null);
-          }}
-          maxWidth="md"
-        >
+      <Modal
+        isOpen={isExpenseModalOpen}
+        title={selectedExpense ? 'Editar Despesa' : 'Nova Despesa'}
+        onClose={() => {
+          setIsExpenseModalOpen(false);
+          setSelectedExpense(null);
+        }}
+        maxWidth="md"
+      >
           <form onSubmit={handleExpenseSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -598,7 +598,6 @@ export default function AdminAnalyticsPage() {
             </div>
           </form>
         </Modal>
-      )}
     </AdminLayout>
   );
 }
