@@ -725,8 +725,8 @@ async def create_test_data(db: Session = Depends(get_db)):
     test_users = [
         # Admin
         {
-            "email": "admin@barbershop.com",
-            "password": "admin123",
+            "email": "admin@barbeariadodudao.com",
+            "password": "dudao123",
             "full_name": "Administrador",
             "phone": "(11) 99999-0000",
             "role": UserRole.ADMIN
@@ -816,7 +816,7 @@ async def create_test_data(db: Session = Depends(get_db)):
         "total_skipped": len(skipped_users),
         "login_info": {
             "admin": [
-                "admin@barbershop.com:admin123"
+                "admin@barbeariadodudao.com:dudao123"
             ],
             "barbeiros": [
                 "carlos@barbearia.com:123456",

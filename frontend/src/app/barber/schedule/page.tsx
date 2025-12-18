@@ -108,6 +108,8 @@ export default function BarberSchedule() {
         return { bg: 'bg-blue-500', border: 'border-blue-500', text: 'text-blue-500' };
       case 'IN_PROGRESS':
         return { bg: 'bg-orange-500', border: 'border-orange-500', text: 'text-orange-500' };
+      case 'PAUSED':
+        return { bg: 'bg-purple-500', border: 'border-purple-500', text: 'text-purple-500' };
       case 'COMPLETED':
         return { bg: 'bg-green-500', border: 'border-green-500', text: 'text-green-500' };
       case 'CANCELLED':
@@ -125,12 +127,69 @@ export default function BarberSchedule() {
         return 'Confirmado';
       case 'IN_PROGRESS':
         return 'Em Andamento';
+      case 'PAUSED':
+        return 'Pausado';
       case 'COMPLETED':
         return 'Concluído';
       case 'CANCELLED':
         return 'Cancelado';
       default:
         return status;
+    }
+  };
+
+  const pauseAppointment = async (appointmentId: number) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/appointments/${appointmentId}/pause`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ reason: 'Pausa manual pelo barbeiro' })
+        }
+      );
+
+      if (response.ok) {
+        loadAppointments(token!);
+        toast.success('Serviço pausado! Sua agenda está liberada para outros atendimentos.');
+      } else {
+        const error = await response.json();
+        toast.error(error.detail || 'Erro ao pausar serviço');
+      }
+    } catch (error) {
+      console.error('Erro ao pausar serviço:', error);
+      toast.error('Erro ao pausar serviço');
+    }
+  };
+
+  const resumeAppointment = async (appointmentId: number) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/appointments/${appointmentId}/resume`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+
+      if (response.ok) {
+        loadAppointments(token!);
+        toast.success('Serviço retomado!');
+      } else {
+        const error = await response.json();
+        toast.error(error.detail || 'Erro ao retomar serviço');
+      }
+    } catch (error) {
+      console.error('Erro ao retomar serviço:', error);
+      toast.error('Erro ao retomar serviço');
     }
   };
 
@@ -615,23 +674,60 @@ export default function BarberSchedule() {
                               <div className="ml-4 flex flex-col space-y-2">
                                 {apt.status !== 'COMPLETED' && apt.status !== 'CANCELLED' && (
                                   <>
-                                    <button
-                                      onClick={() => updateAppointmentStatus(apt.id, 'CONFIRMED')}
-                                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
-                                    >
-                                      Confirmar
-                                    </button>
-                                    <button
-                                      onClick={() => updateAppointmentStatus(apt.id, 'COMPLETED')}
-                                      className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
-                                    >
-                                      Concluir
-                                    </button>
+                                    {/* Botão Iniciar Atendimento - aparece quando está PENDING ou CONFIRMED */}
+                                    {(apt.status === 'PENDING' || apt.status === 'CONFIRMED') && (
+                                      <button
+                                        onClick={() => updateAppointmentStatus(apt.id, 'IN_PROGRESS')}
+                                        className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm transition-colors flex items-center gap-1 font-semibold"
+                                      >
+                                        ▶️ Iniciar Atendimento
+                                      </button>
+                                    )}
+                                    
+                                    {/* Botão Pausar - aparece quando está IN_PROGRESS */}
+                                    {apt.status === 'IN_PROGRESS' && (
+                                      <>
+                                        <button
+                                          onClick={() => pauseAppointment(apt.id)}
+                                          className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm transition-colors flex items-center gap-1"
+                                        >
+                                          ⏸️ Pausar
+                                        </button>
+                                        <button
+                                          onClick={() => updateAppointmentStatus(apt.id, 'COMPLETED')}
+                                          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
+                                        >
+                                          ✅ Concluir
+                                        </button>
+                                      </>
+                                    )}
+                                    
+                                    {/* Botão Retomar - aparece quando está PAUSED */}
+                                    {apt.status === 'PAUSED' && (
+                                      <button
+                                        onClick={() => resumeAppointment(apt.id)}
+                                        className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm transition-colors flex items-center gap-1"
+                                      >
+                                        ▶️ Retomar
+                                      </button>
+                                    )}
+                                    
+                                    {/* Botão Confirmar - aparece quando está PENDING */}
+                                    {apt.status === 'PENDING' && (
+                                      <button
+                                        onClick={() => updateAppointmentStatus(apt.id, 'CONFIRMED')}
+                                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
+                                      >
+                                        ✓ Confirmar
+                                      </button>
+                                    )}
+                                    
+                                    {/* Botão Cancelar - sempre disponível */}
                                     <button
                                       onClick={() => updateAppointmentStatus(apt.id, 'CANCELLED')}
                                       className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
                                     >
-                                      Cancelar
+                                      ✕ Cancelar
                                     </button>
                                   </>
                                 )}
@@ -719,23 +815,60 @@ export default function BarberSchedule() {
                               <div className="ml-4 flex flex-col space-y-2">
                                 {apt.status !== 'COMPLETED' && apt.status !== 'CANCELLED' && (
                                   <>
-                                    <button
-                                      onClick={() => updateAppointmentStatus(apt.id, 'CONFIRMED')}
-                                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition-colors whitespace-nowrap"
-                                    >
-                                      Confirmar
-                                    </button>
-                                    <button
-                                      onClick={() => updateAppointmentStatus(apt.id, 'COMPLETED')}
-                                      className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm transition-colors whitespace-nowrap"
-                                    >
-                                      Concluir
-                                    </button>
+                                    {/* Botão Iniciar Atendimento - aparece quando está PENDING ou CONFIRMED */}
+                                    {(apt.status === 'PENDING' || apt.status === 'CONFIRMED') && (
+                                      <button
+                                        onClick={() => updateAppointmentStatus(apt.id, 'IN_PROGRESS')}
+                                        className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm transition-colors whitespace-nowrap font-semibold"
+                                      >
+                                        ▶️ Iniciar Atendimento
+                                      </button>
+                                    )}
+                                    
+                                    {/* Botão Pausar - aparece quando está IN_PROGRESS */}
+                                    {apt.status === 'IN_PROGRESS' && (
+                                      <>
+                                        <button
+                                          onClick={() => pauseAppointment(apt.id)}
+                                          className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm transition-colors whitespace-nowrap"
+                                        >
+                                          ⏸️ Pausar
+                                        </button>
+                                        <button
+                                          onClick={() => updateAppointmentStatus(apt.id, 'COMPLETED')}
+                                          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm transition-colors whitespace-nowrap"
+                                        >
+                                          ✅ Concluir
+                                        </button>
+                                      </>
+                                    )}
+                                    
+                                    {/* Botão Retomar - aparece quando está PAUSED */}
+                                    {apt.status === 'PAUSED' && (
+                                      <button
+                                        onClick={() => resumeAppointment(apt.id)}
+                                        className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm transition-colors whitespace-nowrap"
+                                      >
+                                        ▶️ Retomar
+                                      </button>
+                                    )}
+                                    
+                                    {/* Botão Confirmar - aparece quando está PENDING */}
+                                    {apt.status === 'PENDING' && (
+                                      <button
+                                        onClick={() => updateAppointmentStatus(apt.id, 'CONFIRMED')}
+                                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition-colors whitespace-nowrap"
+                                      >
+                                        ✓ Confirmar
+                                      </button>
+                                    )}
+                                    
+                                    {/* Botão Cancelar - sempre disponível */}
                                     <button
                                       onClick={() => updateAppointmentStatus(apt.id, 'CANCELLED')}
                                       className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm transition-colors whitespace-nowrap"
                                     >
-                                      Cancelar
+                                      ✕ Cancelar
                                     </button>
                                   </>
                                 )}

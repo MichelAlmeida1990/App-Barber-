@@ -70,3 +70,4 @@ C:\Projetos\App barbearia\
 Se você estava trabalhando no caminho antigo (`C:\Users\miche\OneDrive\...`), certifique-se de abrir o novo caminho (`C:\Projetos\App barbearia\`).
 
 
+

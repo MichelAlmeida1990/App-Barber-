@@ -129,12 +129,12 @@ def init_database():
             
             # Sempre garantir que exista o admin padrão (email/senha conhecidos)
             # (em alguns cenários o banco já existe e só havia admin diferente)
-            admin_user = db.query(User).filter(User.email == "admin@barbearia.com").first()
+            admin_user = db.query(User).filter(User.email == "admin@barbeariadodudao.com").first()
             if not admin_user:
                 logger.info("🔄 Criando usuário admin padrão...")
                 admin_user = User(
-                    email="admin@barbearia.com",
-                    hashed_password=get_password_hash("admin123"),
+                    email="admin@barbeariadodudao.com",
+                    hashed_password=get_password_hash("dudao123"),
                     full_name="Administrador",
                     role=UserRole.ADMIN,
                     status=UserStatus.ACTIVE,
@@ -259,8 +259,8 @@ def ensure_default_barbershop(db: Session) -> int:
     if not admin_user:
         logger.info("🔄 Criando usuário admin padrão...")
         admin_user = User(
-            email="admin@barbearia.com",
-            hashed_password=get_password_hash("admin123"),
+            email="admin@barbeariadodudao.com",
+            hashed_password=get_password_hash("dudao123"),
             full_name="Administrador",
             role=UserRole.ADMIN,
             status=UserStatus.ACTIVE,

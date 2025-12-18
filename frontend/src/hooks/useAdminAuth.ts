@@ -25,6 +25,7 @@ export function useAdminAuth() {
 
       if (!token || !userStr) {
         console.log('❌ Sem autenticação - redirecionando para login');
+        setLoading(false);
         router.push('/admin/login');
         return;
       }
@@ -37,33 +38,34 @@ export function useAdminAuth() {
         console.log('❌ Acesso negado - role:', userData.role);
         localStorage.removeItem('token');
         localStorage.removeItem('user');
+        setLoading(false);
         router.push('/admin/login');
         return;
       }
 
-      // Validar token com backend (opcional mas recomendado)
-      // Se o backend não estiver disponível, permite acesso local se houver token válido
-      validateToken(token).then(isValid => {
-        if (!isValid) {
-          // Se falhar, verifica se é erro de rede (backend offline) ou token inválido
-          // Se houver token e user no localStorage, permite acesso local
-          console.warn('⚠️ Validação de token falhou, mas permitindo acesso local');
-          setUser(userData);
-          setLoading(false);
-        } else {
-          console.log('✅ Autenticação válida - usuário:', userData.email);
-          setUser(userData);
-          setLoading(false);
-        }
-      }).catch(() => {
-        // Se der erro de rede (backend offline), permite acesso local
-        console.warn('⚠️ Backend não disponível, permitindo acesso local com token');
-        setUser(userData);
-        setLoading(false);
-      });
+      // Permitir acesso imediato se houver token e user válidos
+      // Validação do backend será feita em background (não bloqueia)
+      console.log('✅ Token encontrado - permitindo acesso imediato');
+      setUser(userData);
+      setLoading(false);
+      
+      // Validar token com backend em background (opcional)
+      // Não bloqueia o acesso se o backend estiver offline
+      validateToken(token)
+        .then(isValid => {
+          if (isValid) {
+            console.log('✅ Token validado com sucesso no backend');
+          } else {
+            console.warn('⚠️ Validação de token falhou, mas acesso já foi permitido');
+          }
+        })
+        .catch(() => {
+          console.warn('⚠️ Backend não disponível, mas acesso já foi permitido');
+        });
 
     } catch (error) {
       console.error('Erro ao verificar autenticação:', error);
+      setLoading(false);
       router.push('/admin/login');
     }
   };

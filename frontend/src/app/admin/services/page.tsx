@@ -316,7 +316,7 @@ export default function ServicesPage() {
       {/* Grid de serviços */}
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {filteredServices.map((service) => (
-          <div key={service.id} className="bg-white overflow-hidden shadow rounded-lg">
+          <div key={service.id} className="bg-[rgba(147,197,253,0.2)] backdrop-blur-[15px] border border-[rgba(147,197,253,0.4)] overflow-hidden shadow-xl rounded-2xl hover:bg-[rgba(147,197,253,0.3)] hover:border-[rgba(147,197,253,0.5)] transition-all duration-300" style={{ WebkitBackdropFilter: 'blur(15px)' }}>
             <div className="p-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center">

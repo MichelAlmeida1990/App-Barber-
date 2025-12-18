@@ -20,3 +20,4 @@ Todos os arquivos existem em: `C:\Projetos\App barbearia\frontend\src\app\admin\
 4. Se não aparecer, forçar redeploy manual no Vercel
 
 
+

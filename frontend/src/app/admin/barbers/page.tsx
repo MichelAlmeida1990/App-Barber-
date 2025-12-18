@@ -198,7 +198,7 @@ export default function AdminBarbersPage() {
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {filtered.map((b) => (
-            <div key={b.id} className="bg-white shadow rounded-lg p-4 sm:p-5 border border-gray-100">
+            <div key={b.id} className="bg-[rgba(147,197,253,0.2)] backdrop-blur-[15px] border border-[rgba(147,197,253,0.4)] shadow-xl rounded-2xl p-4 sm:p-5 hover:bg-[rgba(147,197,253,0.3)] hover:border-[rgba(147,197,253,0.5)] transition-all duration-300" style={{ WebkitBackdropFilter: 'blur(15px)' }}>
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1 min-w-0">
                   <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate">{b.name}</h3>

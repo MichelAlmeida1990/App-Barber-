@@ -129,7 +129,7 @@ Use este checklist enquanto faz o deploy seguindo o `GUIA_DEPLOY_COMPLETO.md`
 - [ ] Banco conectado
 
 ### Integrações
-- [ ] Login Admin: `admin@barbershop.com` / `admin123`
+- [ ] Login Admin: `admin@barbeariadodudao.com` / `dudao123`
 - [ ] Login Barbeiro: `barbeiro1@email.com` / `senha123`
 - [ ] Login Cliente: `cliente1@email.com` / `senha123`
 - [ ] Criar agendamento funciona

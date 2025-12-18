@@ -10,6 +10,7 @@ class AppointmentStatus(str, enum.Enum):
     PENDING = "pending"          # Aguardando confirmação
     CONFIRMED = "confirmed"      # Confirmado
     IN_PROGRESS = "in_progress"  # Em andamento
+    PAUSED = "paused"            # Pausado (libera agenda para outros atendimentos)
     COMPLETED = "completed"      # Concluído
     CANCELLED = "cancelled"      # Cancelado pelo cliente
     NO_SHOW = "no_show"         # Cliente não compareceu
@@ -99,6 +100,12 @@ class Appointment(Base):
     rescheduled_from_id = Column(Integer, ForeignKey("appointments.id"), nullable=True)
     rescheduled_to_id = Column(Integer, ForeignKey("appointments.id"), nullable=True)
     
+    # === PAUSA DINÂMICA ===
+    paused_at = Column(DateTime(timezone=True), nullable=True)  # Quando foi pausado
+    resumed_at = Column(DateTime(timezone=True), nullable=True)  # Quando foi retomado
+    pause_duration_minutes = Column(Integer, default=0)  # Duração total da pausa em minutos
+    pause_reason = Column(Text, nullable=True)  # Motivo da pausa (opcional)
+    
     # === FEEDBACK ===
     rating = Column(Integer, nullable=True)  # 1-5
     review = Column(Text, nullable=True)
@@ -161,6 +168,45 @@ class Appointment(Base):
     def can_be_rescheduled(self) -> bool:
         """Verifica se pode ser reagendado"""
         return self.can_be_cancelled and self.status == AppointmentStatus.CONFIRMED
+    
+    @property
+    def is_paused(self) -> bool:
+        """Verifica se está pausado"""
+        return self.status == AppointmentStatus.PAUSED
+    
+    @property
+    def can_be_paused(self) -> bool:
+        """Verifica se pode ser pausado (deve estar em andamento)"""
+        return self.status == AppointmentStatus.IN_PROGRESS
+    
+    @property
+    def can_be_resumed(self) -> bool:
+        """Verifica se pode ser retomado (deve estar pausado)"""
+        return self.status == AppointmentStatus.PAUSED
+    
+    def pause(self, reason: str = None):
+        """Pausa o agendamento (libera a agenda)"""
+        if not self.can_be_paused:
+            raise ValueError("Agendamento não pode ser pausado neste momento")
+        
+        from datetime import datetime
+        self.paused_at = datetime.now()
+        self.pause_reason = reason
+        self.status = AppointmentStatus.PAUSED
+    
+    def resume(self):
+        """Retoma o agendamento pausado"""
+        if not self.can_be_resumed:
+            raise ValueError("Agendamento não pode ser retomado neste momento")
+        
+        from datetime import datetime
+        if self.paused_at:
+            # Calcular duração da pausa
+            pause_delta = datetime.now() - self.paused_at
+            self.pause_duration_minutes += int(pause_delta.total_seconds() / 60)
+        
+        self.resumed_at = datetime.now()
+        self.status = AppointmentStatus.IN_PROGRESS
     
     @property
     def time_until_appointment(self) -> str:

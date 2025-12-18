@@ -310,17 +310,39 @@ async def get_availability(
     current_time = datetime.combine(appointment_date, time(8, 0))
     end_time = datetime.combine(appointment_date, time(18, 0))
     
+    # Buscar agendamentos do barbeiro para esta data (excluindo pausados)
+    appointments_on_date = db.query(Appointment).filter(
+        and_(
+            Appointment.barber_id == barber_id,
+            func.date(Appointment.appointment_date) == appointment_date,
+            Appointment.status != AppointmentStatus.PAUSED,  # Ignorar agendamentos pausados
+            Appointment.status != AppointmentStatus.CANCELLED,
+            Appointment.status != AppointmentStatus.COMPLETED,
+            Appointment.deleted_at.is_(None)
+        )
+    ).all()
+    
     while current_time < end_time:
         slot_end = current_time + timedelta(minutes=30)
         
-        # Por enquanto, todos os horários estão disponíveis
-        # TODO: Implementar verificação real de disponibilidade
+        # Verificar se há conflito com algum agendamento
         is_available = True
+        conflicting_appointment = None
+        
+        for apt in appointments_on_date:
+            apt_start = apt.start_time
+            apt_end = apt.end_time
+            
+            # Verificar sobreposição de horários
+            if not (slot_end <= apt_start or current_time >= apt_end):
+                is_available = False
+                conflicting_appointment = apt
+                break
         
         time_slots.append(TimeSlot(
             time=current_time.strftime("%H:%M"),
             available=is_available,
-            appointment_id=None
+            appointment_id=conflicting_appointment.id if conflicting_appointment else None
         ))
         
         current_time = slot_end
@@ -1013,4 +1035,105 @@ async def update_appointment_status_simple(
             "barber_name": barber.professional_name if barber else "Unknown",
             "appointment_date": appointment.appointment_date.isoformat()
         }
-    } 
+    }
+
+@router.post("/{appointment_id}/pause")
+async def pause_appointment(
+    appointment_id: int,
+    reason: Optional[str] = None,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Pausar um agendamento em andamento (libera a agenda do barbeiro)"""
+    
+    appointment = db.query(Appointment).filter(Appointment.id == appointment_id).first()
+    if not appointment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Agendamento não encontrado"
+        )
+    
+    # Verificar permissões
+    can_pause = False
+    if current_user.is_barber:
+        barber = db.query(Barber).filter(Barber.user_id == current_user.id).first()
+        can_pause = barber and appointment.barber_id == barber.id
+    elif current_user.can_manage_barbershop:
+        can_pause = True
+    
+    if not can_pause:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Não autorizado a pausar este agendamento"
+        )
+    
+    try:
+        appointment.pause(reason)
+        db.commit()
+        db.refresh(appointment)
+        
+        return {
+            "success": True,
+            "message": "Agendamento pausado. Agenda liberada para outros atendimentos.",
+            "appointment": {
+                "id": appointment.id,
+                "status": appointment.status.value,
+                "paused_at": appointment.paused_at.isoformat() if appointment.paused_at else None,
+                "pause_reason": appointment.pause_reason
+            }
+        }
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+@router.post("/{appointment_id}/resume")
+async def resume_appointment(
+    appointment_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Retomar um agendamento pausado"""
+    
+    appointment = db.query(Appointment).filter(Appointment.id == appointment_id).first()
+    if not appointment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Agendamento não encontrado"
+        )
+    
+    # Verificar permissões
+    can_resume = False
+    if current_user.is_barber:
+        barber = db.query(Barber).filter(Barber.user_id == current_user.id).first()
+        can_resume = barber and appointment.barber_id == barber.id
+    elif current_user.can_manage_barbershop:
+        can_resume = True
+    
+    if not can_resume:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Não autorizado a retomar este agendamento"
+        )
+    
+    try:
+        appointment.resume()
+        db.commit()
+        db.refresh(appointment)
+        
+        return {
+            "success": True,
+            "message": "Agendamento retomado.",
+            "appointment": {
+                "id": appointment.id,
+                "status": appointment.status.value,
+                "resumed_at": appointment.resumed_at.isoformat() if appointment.resumed_at else None,
+                "pause_duration_minutes": appointment.pause_duration_minutes
+            }
+        }
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
