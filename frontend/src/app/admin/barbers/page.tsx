@@ -3,18 +3,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import AdminLayout from '@/components/AdminLayout';
 import toast from 'react-hot-toast';
+import { barbersAPI } from '@/lib/api';
 import { MagnifyingGlassIcon, PencilIcon, PhoneIcon, PlusIcon, ScissorsIcon, TrashIcon } from '@heroicons/react/24/outline';
 import Modal from '@/components/Modal';
 import BarberForm from '@/components/forms/BarberForm';
-import { useRouter } from 'next/navigation';
 
 type Barber = {
-  id: string | number;
+  id: string;
   name: string;
   email?: string;
   phone?: string;
   specialty?: string;
-  specialties?: string[];
+  specialties: string[];
   experience?: string;
   commission?: number;
   schedule?: string;
@@ -22,182 +22,198 @@ type Barber = {
   active: boolean;
 };
 
+const mockBarbers: Barber[] = [
+  { id: '1', name: 'Carlos Santos', phone: '(11) 99999-0001', specialties: ['Corte', 'Barba'], active: true },
+  { id: '2', name: 'André Lima', phone: '(11) 99999-0002', specialties: ['Corte', 'Combo'], active: true },
+  { id: '3', name: 'Roberto Costa', phone: '(11) 99999-0003', specialties: ['Barba', 'Acabamento'], active: false },
+];
+
+const ADMIN_BARBERS_LS_KEY = 'admin_barbers_v1';
+
 export default function AdminBarbersPage() {
-  const router = useRouter();
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'todos' | 'ativos' | 'inativos'>('todos');
-  const [barbers, setBarbers] = useState<Barber[]>([]);
+  const [hydrated, setHydrated] = useState(false);
+  const [items, setItems] = useState<Barber[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBarber, setEditingBarber] = useState<any>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      router.push('/admin/login');
-      return;
+    try {
+      const raw = localStorage.getItem(ADMIN_BARBERS_LS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as Barber[];
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // PRIORIDADE TOTAL: usar dados reais do localStorage
+          setItems(parsed);
+        } else {
+          // Só usar mock se realmente não houver NADA salvo
+          setItems([]);
+        }
+      } else {
+        // Não usar mock, deixar vazio para forçar cadastro real
+        setItems([]);
+      }
+    } catch (e) {
+      console.warn('Falha ao ler barbeiros do localStorage:', e);
+      setItems([]);
+    } finally {
+      setHydrated(true);
     }
-    loadBarbers();
-  }, [router]);
+  }, []);
 
-  const loadBarbers = async () => {
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      localStorage.setItem(ADMIN_BARBERS_LS_KEY, JSON.stringify(items));
+      // Notificar outras telas no MESMO TAB (o evento "storage" não dispara no mesmo documento)
+      window.dispatchEvent(new Event('admin_barbers_updated'));
+    } catch (e) {
+      console.warn('Falha ao salvar barbeiros no localStorage:', e);
+    }
+  }, [hydrated, items]);
+
+  const filtered = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return items.filter((b) => {
+      const matchesSearch = !term || b.name.toLowerCase().includes(term) || b.specialties.join(' ').toLowerCase().includes(term);
+      const matchesStatus =
+        statusFilter === 'todos' || (statusFilter === 'ativos' ? b.active : !b.active);
+      return matchesSearch && matchesStatus;
+    });
+  }, [items, search, statusFilter]);
+
+  const testAPI = async () => {
     setLoading(true);
     try {
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
-      const token = localStorage.getItem('token');
-
-      const response = await fetch(`${API_BASE_URL}/api/v1/barbers/`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setBarbers(Array.isArray(data) ? data : []);
-      } else {
-        toast.error('Erro ao carregar barbeiros');
-      }
-    } catch (error) {
-      console.error('Erro:', error);
-      toast.error('Erro ao conectar com o servidor');
+      const res = await barbersAPI.test();
+      console.log('Barbers API Response:', res.data);
+      toast.success('✅ API de barbeiros funcionando!');
+    } catch (e) {
+      console.error('Erro na API de barbeiros:', e);
+      toast.error('❌ Erro ao conectar com API de barbeiros');
     } finally {
       setLoading(false);
     }
   };
 
-  const filtered = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    return barbers.filter((b) => {
-      const matchesSearch = !term || b.name.toLowerCase().includes(term) || (b.specialties?.join(' ').toLowerCase().includes(term) ?? false);
-      const matchesStatus = statusFilter === 'todos' || (statusFilter === 'ativos' ? b.active : !b.active);
-      return matchesSearch && matchesStatus;
-    });
-  }, [barbers, search, statusFilter]);
-
   const handleUpsertBarber = (barber: any) => {
-    // After creating/updating barber, reload the list
-    loadBarbers();
+    // BarberForm usa { specialty } e outros campos; aqui convertemos para { specialties: string[] } + active
+    const normalized: Barber = {
+      id: barber.id,
+      name: barber.name,
+      email: barber.email,
+      phone: barber.phone,
+      specialty: barber.specialty,
+      specialties: Array.isArray(barber.specialties)
+        ? barber.specialties
+        : barber.specialty
+          ? [String(barber.specialty)]
+          : [],
+      experience: barber.experience,
+      commission: barber.commission,
+      schedule: barber.schedule,
+      notes: barber.notes,
+      active: barber.status ? barber.status === 'ativo' : barber.active ?? true,
+    };
+
+    setItems((prev) => {
+      const exists = prev.some((b) => b.id === normalized.id);
+      return exists ? prev.map((b) => (b.id === normalized.id ? { ...b, ...normalized } : b)) : [normalized, ...prev];
+    });
     setIsModalOpen(false);
     setEditingBarber(null);
     toast.success(editingBarber ? 'Barbeiro atualizado com sucesso!' : 'Barbeiro criado com sucesso!');
   };
 
-  const handleDeleteBarber = async (id: string | number) => {
-    if (!confirm('Tem certeza que deseja excluir este barbeiro?')) return;
-
-    try {
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
-      const token = localStorage.getItem('token');
-
-      const response = await fetch(`${API_BASE_URL}/api/v1/barbers/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        toast.success('Barbeiro excluído com sucesso!');
-        loadBarbers();
-      } else {
-        toast.error('Erro ao excluir barbeiro');
-      }
-    } catch (error) {
-      console.error('Erro:', error);
-      toast.error('Erro ao excluir barbeiro');
-    }
+  const handleDeleteBarber = (id: string) => {
+    if (!window.confirm('Tem certeza que deseja excluir este barbeiro?')) return;
+    setItems((prev) => prev.filter((b) => b.id !== id));
+    toast.success('Barbeiro excluído com sucesso!');
   };
-
 
   return (
     <AdminLayout>
-      {/* Header */}
-      <div className="pb-6 mb-8 bg-gradient-to-r from-gray-800 via-gray-900 to-gray-800 rounded-xl p-6 shadow-lg border border-gray-700">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="bg-gradient-to-br from-purple-600 to-purple-700 p-3 rounded-lg">
-              <ScissorsIcon className="h-8 w-8 text-white" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-white">Barbeiros</h1>
-              <p className="text-gray-300 text-sm mt-1">Gerencie equipe, especialidades e status</p>
-            </div>
-          </div>
+      <div className="pb-5 border-b border-gray-200 sm:flex sm:items-center sm:justify-between mb-6">
+        <div>
+          <h1 className="text-3xl font-bold leading-6 text-gray-900">Barbeiros</h1>
+          <p className="mt-2 max-w-4xl text-sm text-gray-500">Gerencie equipe, especialidades e status</p>
+        </div>
+        <div className="mt-3 sm:mt-0 sm:ml-4">
           <button
             type="button"
             onClick={() => {
               setEditingBarber(null);
               setIsModalOpen(true);
             }}
-            className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg hover:from-purple-700 hover:to-purple-800 transition-all duration-200 shadow-lg"
+            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 mr-3"
           >
-            <PlusIcon className="h-5 w-5 mr-2" />
+            <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
             Novo Barbeiro
+          </button>
+          <button
+            onClick={testAPI}
+            disabled={loading}
+            className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+          >
+            {loading ? 'Testando...' : 'Testar API'}
           </button>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 mb-6">
+      <div className="bg-white shadow rounded-lg p-4 mb-6">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div className="relative">
-            <MagnifyingGlassIcon className="h-5 w-5 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
+            <MagnifyingGlassIcon className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar por nome ou especialidade"
-              className="w-full pl-10 pr-3 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg placeholder-gray-500 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md text-sm"
             />
           </div>
           <div>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as 'todos' | 'ativos' | 'inativos')}
-              className="w-full py-2 px-3 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="w-full py-2 px-3 border border-gray-300 rounded-md text-sm"
             >
               <option value="todos">Todos</option>
               <option value="ativos">Ativos</option>
               <option value="inativos">Inativos</option>
             </select>
           </div>
-          <div className="flex items-center text-sm text-gray-400 px-4 py-2 bg-gray-700 rounded-lg border border-gray-600">
-            <ScissorsIcon className="h-5 w-5 mr-2" />
-            <span>Total: <span className="ml-1 font-semibold text-white">{filtered.length}</span></span>
+          <div className="flex items-center text-sm text-gray-600">
+            <ScissorsIcon className="h-5 w-5 mr-2 text-gray-400" />
+            Total: <span className="ml-1 font-semibold text-gray-900">{filtered.length}</span>
           </div>
         </div>
       </div>
 
-      {/* Barbers Grid */}
-      {loading ? (
-        <div className="text-center py-10">
-          <p className="text-gray-400">Carregando barbeiros...</p>
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="bg-gray-800 border border-gray-700 rounded-lg p-8 text-center">
-          <ScissorsIcon className="h-12 w-12 text-gray-600 mx-auto mb-3" />
-          <p className="text-gray-400">Nenhum barbeiro encontrado.</p>
+      {filtered.length === 0 ? (
+        <div className="bg-white shadow rounded-lg p-8 text-center text-sm text-gray-500">
+          Nenhum barbeiro encontrado.
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {filtered.map((b) => (
-            <div key={b.id} className="bg-gray-800 border border-gray-700 rounded-lg p-4 sm:p-5 hover:border-gray-600 transition-colors">
+            <div key={b.id} className="bg-[rgba(147,197,253,0.2)] backdrop-blur-[15px] border border-[rgba(147,197,253,0.4)] shadow-xl rounded-2xl p-4 sm:p-5 hover:bg-[rgba(147,197,253,0.3)] hover:border-[rgba(147,197,253,0.5)] transition-all duration-300" style={{ WebkitBackdropFilter: 'blur(15px)' }}>
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-base sm:text-lg font-semibold text-white truncate">{b.name}</h3>
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate">{b.name}</h3>
                   {b.email && (
-                    <div className="mt-1 text-xs sm:text-sm text-gray-400 truncate">{b.email}</div>
+                    <div className="mt-1 text-xs sm:text-sm text-gray-600 truncate">{b.email}</div>
                   )}
                   {b.phone ? (
-                    <div className="mt-1 flex items-center text-xs sm:text-sm text-gray-400">
-                      <PhoneIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 text-gray-500 flex-shrink-0" />
+                    <div className="mt-1 flex items-center text-xs sm:text-sm text-gray-600">
+                      <PhoneIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2 text-gray-400 flex-shrink-0" />
                       <span className="truncate">{b.phone}</span>
                     </div>
                   ) : null}
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                  <span className={`inline-flex px-2 py-1 rounded-full text-xs font-semibold ${b.active ? 'bg-green-900/30 text-green-400 border border-green-700' : 'bg-gray-700 text-gray-400 border border-gray-600'}`}>
+                  <span className={`inline-flex px-2 py-1 rounded-full text-xs font-semibold ${b.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
                     {b.active ? 'ativo' : 'inativo'}
                   </span>
                   <button
@@ -217,7 +233,7 @@ export default function AdminBarbersPage() {
                       });
                       setIsModalOpen(true);
                     }}
-                    className="p-1.5 sm:p-2 text-purple-400 hover:text-purple-300 hover:bg-purple-900/30 rounded-md transition-colors"
+                    className="p-1.5 sm:p-2 text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50 rounded-md transition-colors"
                     title="Editar"
                   >
                     <PencilIcon className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -225,7 +241,7 @@ export default function AdminBarbersPage() {
                   <button
                     type="button"
                     onClick={() => handleDeleteBarber(b.id)}
-                    className="p-1.5 sm:p-2 text-red-400 hover:text-red-300 hover:bg-red-900/30 rounded-md transition-colors"
+                    className="p-1.5 sm:p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-md transition-colors"
                     title="Excluir"
                   >
                     <TrashIcon className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -234,11 +250,11 @@ export default function AdminBarbersPage() {
               </div>
               
               {b.specialties && b.specialties.length > 0 && (
-                <div className="mt-3 pt-3 border-t border-gray-700">
-                  <p className="text-xs text-gray-400 uppercase tracking-wide mb-2">Especialidades</p>
+                <div className="mt-3 pt-3 border-t border-gray-200">
+                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-2">Especialidades</p>
                   <div className="flex flex-wrap gap-2">
                     {b.specialties.map((s) => (
-                      <span key={s} className="inline-flex px-2 py-1 rounded-md text-xs bg-purple-900/30 text-purple-400 border border-purple-700">
+                      <span key={s} className="inline-flex px-2 py-1 rounded-md text-xs bg-indigo-50 text-indigo-700">
                         {s}
                       </span>
                     ))}
@@ -247,32 +263,32 @@ export default function AdminBarbersPage() {
               )}
 
               {(b.experience || b.commission || b.schedule) && (
-                <div className="mt-3 pt-3 border-t border-gray-700 space-y-1">
+                <div className="mt-3 pt-3 border-t border-gray-200 space-y-1">
                   {b.experience && (
                     <div className="text-xs">
-                      <span className="text-gray-400">Experiência: </span>
-                      <span className="text-white font-medium">{b.experience}</span>
+                      <span className="text-gray-600">Experiência: </span>
+                      <span className="text-gray-900 font-medium">{b.experience}</span>
                     </div>
                   )}
                   {b.commission && (
                     <div className="text-xs">
-                      <span className="text-gray-400">Comissão: </span>
-                      <span className="text-white font-medium">{b.commission}%</span>
+                      <span className="text-gray-600">Comissão: </span>
+                      <span className="text-gray-900 font-medium">{b.commission}%</span>
                     </div>
                   )}
                   {b.schedule && (
                     <div className="text-xs">
-                      <span className="text-gray-400">Horário: </span>
-                      <span className="text-white font-medium">{b.schedule}</span>
+                      <span className="text-gray-600">Horário: </span>
+                      <span className="text-gray-900 font-medium">{b.schedule}</span>
                     </div>
                   )}
                 </div>
               )}
 
               {b.notes && (
-                <div className="mt-3 pt-3 border-t border-gray-700">
-                  <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Observações</p>
-                  <p className="text-xs text-gray-300 line-clamp-2">{b.notes}</p>
+                <div className="mt-3 pt-3 border-t border-gray-200">
+                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Observações</p>
+                  <p className="text-xs text-gray-700 line-clamp-2">{b.notes}</p>
                 </div>
               )}
             </div>
@@ -280,7 +296,6 @@ export default function AdminBarbersPage() {
         </div>
       )}
 
-      {/* Modal */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => {

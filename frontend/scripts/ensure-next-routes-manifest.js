@@ -46,8 +46,3 @@ const minimal = JSON.stringify(
 writeIfMissing(manifestPath, minimal);
 
 
-
-
-
-
-

@@ -49,8 +49,12 @@ export default function AdminLogin() {
       localStorage.setItem('token', data.access_token);
       localStorage.setItem('user', JSON.stringify(data.user));
       
+      console.log('✅ Login realizado com sucesso:', data.user.email);
+      console.log('📝 Token salvo, redirecionando...');
+      
+      // Forçar reload para garantir que o AdminProtectedPage detecte o token
       // Redirecionar para dashboard administrativo
-      router.push('/admin');
+      window.location.href = '/admin';
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Erro ao fazer login');
     } finally {
@@ -115,7 +119,7 @@ export default function AdminLogin() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full pl-10 pr-3 py-3 border border-gray-600 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="admin@barbershop.com"
+                  placeholder="admin@barbeariadodudao.com"
                 />
               </div>
             </div>
@@ -205,9 +209,9 @@ export default function AdminLogin() {
         <div className="text-center mt-8 text-gray-400 text-sm">
           <div className="flex justify-center items-center mb-2">
             <IconFallback type="barber-pole" size="sm" className="mr-2 opacity-50" />
-            <span>Sistema Administrativo - Barbershop Manager</span>
+            <span>Sistema Administrativo - BARBEARIA DO DUDÃO</span>
           </div>
-          <p>© 2024 Barbershop Manager. Todos os direitos reservados.</p>
+          <p>© 2024 BARBEARIA DO DUDÃO - Since 2020. Todos os direitos reservados.</p>
         </div>
       </div>
     </div>

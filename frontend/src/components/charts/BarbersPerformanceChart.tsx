@@ -124,8 +124,3 @@ export default function BarbersPerformanceChart({
 
 
 
-
-
-
-
-

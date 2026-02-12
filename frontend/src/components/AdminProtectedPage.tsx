@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode } from 'react';
+import { ReactNode, useEffect } from 'react';
 import { useAdminAuth } from '@/hooks/useAdminAuth';
 
 interface AdminProtectedPageProps {
@@ -8,7 +8,12 @@ interface AdminProtectedPageProps {
 }
 
 export default function AdminProtectedPage({ children }: AdminProtectedPageProps) {
-  const { loading } = useAdminAuth();
+  const { loading, user } = useAdminAuth();
+
+  // Log para debug
+  useEffect(() => {
+    console.log('🔐 AdminProtectedPage - loading:', loading, 'user:', user);
+  }, [loading, user]);
 
   if (loading) {
     return (
@@ -17,6 +22,7 @@ export default function AdminProtectedPage({ children }: AdminProtectedPageProps
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
           <p className="text-white text-lg">🔒 Verificando autenticação...</p>
           <p className="text-white/60 text-sm mt-2">Aguarde enquanto validamos seu acesso</p>
+          <p className="text-white/40 text-xs mt-4">Se demorar mais de 3 segundos, verifique o console</p>
         </div>
       </div>
     );
@@ -25,11 +31,6 @@ export default function AdminProtectedPage({ children }: AdminProtectedPageProps
   // Se chegou aqui, está autenticado e autorizado
   return <>{children}</>;
 }
-
-
-
-
-
 
 
 

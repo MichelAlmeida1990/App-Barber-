@@ -76,8 +76,3 @@ export default function WeekdayChart({ data, showRevenue = true }: WeekdayChartP
 
 
 
-
-
-
-
-

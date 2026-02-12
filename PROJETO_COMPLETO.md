@@ -207,8 +207,8 @@ Credenciais: carlos@barbearia.com / 123456
 
 ### Admin
 ```
-Email: admin@barbershop.com
-Senha: admin123
+Email: admin@barbeariadodudao.com
+Senha: dudao123
 URL: http://localhost:3000/admin/login
 ```
 
@@ -295,11 +295,6 @@ O sistema está **pronto para uso** seguindo o checklist de segurança.
 **Status:** ✅ Completo e Funcional
 
 **🎉 Todas as tarefas foram concluídas com sucesso!**
-
-
-
-
-
 
 
 

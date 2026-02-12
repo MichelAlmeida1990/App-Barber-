@@ -77,7 +77,7 @@ def check_data():
         print(f"   🚫 Bloqueios: {blocks_count}")
         
         # Verificar admin
-        admin = db.query(User).filter(User.email == 'admin@barbershop.com').first()
+        admin = db.query(User).filter(User.email == 'admin@barbeariadodudao.com').first()
         if admin:
             print(f"\n✅ Admin encontrado:")
             print(f"   Email: {admin.email}")
@@ -148,11 +148,6 @@ def main():
 if __name__ == "__main__":
     success = main()
     sys.exit(0 if success else 1)
-
-
-
-
-
 
 
 

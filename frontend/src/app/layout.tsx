@@ -6,8 +6,8 @@ import ClientToaster from '@/components/ClientToaster'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Barbershop Manager',
-  description: 'Sistema de gerenciamento para barbearias',
+  title: 'BARBEARIA DO DUDÃO - Sistema de Gerenciamento',
+  description: 'Sistema de gerenciamento para BARBEARIA DO DUDÃO - Since 2020',
 }
 
 export default function RootLayout({

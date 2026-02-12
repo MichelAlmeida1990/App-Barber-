@@ -73,6 +73,62 @@ export default function SaleForm({ onSubmit, onCancel, initialData }: SaleFormPr
   const [produtosFonte, setProdutosFonte] = useState<{ id: string; nome: string; preco: number }[]>(produtosDisponiveis);
   const [clientesFonte, setClientesFonte] = useState<{ id: string; nome: string }[]>([]);
 
+  // Carregar dados iniciais quando initialData mudar
+  useEffect(() => {
+    if (initialData) {
+      // Atualizar formData
+      setFormData({
+        cliente_nome: initialData.cliente || initialData.cliente_nome || '',
+        barbeiro_id: initialData.barbeiro_id || '',
+        barbeiro_nome: initialData.barbeiro || initialData.barbeiro_nome || '',
+        servicos_selecionados: initialData.servicos || [],
+        produtos_selecionados: initialData.produtos || [],
+        desconto: initialData.desconto || 0,
+        forma_pagamento: initialData.formaPagamento || initialData.forma_pagamento || '',
+        observacoes: initialData.observacoes || ''
+      });
+
+      // Carregar serviços e produtos selecionados
+      if (initialData.servicos && Array.isArray(initialData.servicos) && servicosFonte.length > 0) {
+        const servicosCarregados = initialData.servicos.map((nomeServico: string) => {
+          const servicoEncontrado = servicosFonte.find(s => s.nome === nomeServico);
+          if (servicoEncontrado) {
+            return { ...servicoEncontrado, quantidade: 1 };
+          }
+          // Se não encontrar, criar um objeto básico
+          return { id: `temp-${nomeServico}`, nome: nomeServico, preco: 0, quantidade: 1 };
+        });
+        setServicosSelecionados(servicosCarregados);
+      }
+
+      if (initialData.produtos && Array.isArray(initialData.produtos) && produtosFonte.length > 0) {
+        const produtosCarregados = initialData.produtos.map((nomeProduto: string) => {
+          const produtoEncontrado = produtosFonte.find(p => p.nome === nomeProduto);
+          if (produtoEncontrado) {
+            return { ...produtoEncontrado, quantidade: 1 };
+          }
+          // Se não encontrar, criar um objeto básico
+          return { id: `temp-${nomeProduto}`, nome: nomeProduto, preco: 0, quantidade: 1 };
+        });
+        setProdutosSelecionados(produtosCarregados);
+      }
+    } else {
+      // Limpar formulário para nova venda
+      setFormData({
+        cliente_nome: '',
+        barbeiro_id: '',
+        barbeiro_nome: '',
+        servicos_selecionados: [],
+        produtos_selecionados: [],
+        desconto: 0,
+        forma_pagamento: '',
+        observacoes: ''
+      });
+      setServicosSelecionados([]);
+      setProdutosSelecionados([]);
+    }
+  }, [initialData, servicosFonte, produtosFonte]);
+
   useEffect(() => {
     const safeRead = <T,>(key: string, fallback: T): T => {
       try {

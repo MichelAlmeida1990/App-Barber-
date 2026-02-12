@@ -137,8 +137,3 @@ export default function ServicesRankingChart({ data }: ServicesRankingChartProps
 
 
 
-
-
-
-
-

@@ -71,8 +71,3 @@ Após configurar, teste novamente o login com Google. O erro deve mostrar uma me
 
 
 
-
-
-
-
-

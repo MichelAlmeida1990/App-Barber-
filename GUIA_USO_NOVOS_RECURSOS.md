@@ -421,8 +421,3 @@ GET /api/v1/appointments/{id}
 
 
 
-
-
-
-
-
