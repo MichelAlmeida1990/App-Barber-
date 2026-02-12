@@ -157,3 +157,10 @@ Agora o ambiente **local é um espelho exato da produção**:
 
 **Data:** 15/12/2025
 
+
+
+
+
+
+
+

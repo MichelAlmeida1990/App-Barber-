@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import AdminLayout from '@/components/AdminLayout';
 import { 
   CubeIcon, 
@@ -15,6 +15,8 @@ import { productsAPI } from '@/lib/api';
 import toast from 'react-hot-toast';
 import Modal from '@/components/Modal';
 import ProductForm from '@/components/forms/ProductForm';
+
+const ADMIN_PRODUCTS_LS_KEY = 'admin_products_v1';
 
 const mockProducts = [
   {
@@ -85,12 +87,61 @@ const mockProducts = [
 ];
 
 export default function ProductsPage() {
-  const [products, setProducts] = useState(mockProducts);
+  const [hydrated, setHydrated] = useState(false);
+  const [products, setProducts] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('todos');
   const [stockFilter, setStockFilter] = useState('todos');
   const [loading, setLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<any>(null);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(ADMIN_PRODUCTS_LS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) setProducts(parsed);
+        else setProducts(mockProducts);
+      } else {
+        setProducts(mockProducts);
+      }
+    } catch (e) {
+      console.warn('Falha ao ler produtos do localStorage:', e);
+      setProducts(mockProducts);
+    } finally {
+      setHydrated(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      localStorage.setItem(ADMIN_PRODUCTS_LS_KEY, JSON.stringify(products));
+    } catch (e) {
+      console.warn('Falha ao salvar produtos no localStorage:', e);
+    }
+  }, [hydrated, products]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(ADMIN_PRODUCTS_LS_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed) || parsed.length === 0) return;
+      setProducts(parsed);
+    } catch (e) {
+      console.warn('Falha ao ler produtos do localStorage:', e);
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(ADMIN_PRODUCTS_LS_KEY, JSON.stringify(products));
+    } catch (e) {
+      console.warn('Falha ao salvar produtos no localStorage:', e);
+    }
+  }, [products]);
 
   const filteredProducts = products.filter(product => {
     const matchesSearch = 
@@ -125,8 +176,17 @@ export default function ProductsPage() {
   };
 
   const handleAddProduct = (newProduct: any) => {
-    setProducts(prev => [...prev, newProduct]);
+    const normalized = {
+      ...newProduct,
+      price: typeof newProduct.price === 'number' ? newProduct.price : (typeof newProduct.salePrice === 'number' ? newProduct.salePrice : newProduct.price),
+    };
+
+    setProducts(prev => {
+      const exists = prev.some((p: any) => p.id === normalized.id);
+      return exists ? prev.map((p: any) => (p.id === normalized.id ? { ...p, ...normalized } : p)) : [...prev, normalized];
+    });
     setIsModalOpen(false);
+    setEditingProduct(null);
   };
 
   const handleDeleteProduct = (productId: string) => {
@@ -346,7 +406,15 @@ export default function ProductsPage() {
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <button className="text-indigo-600 hover:text-indigo-900">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingProduct(product);
+                          setIsModalOpen(true);
+                        }}
+                        className="text-indigo-600 hover:text-indigo-900"
+                        title="Editar"
+                      >
                         <PencilIcon className="h-5 w-5" />
                       </button>
                       <button 
@@ -380,12 +448,16 @@ export default function ProductsPage() {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title="Novo Produto"
+        title={editingProduct ? 'Editar Produto' : 'Novo Produto'}
         maxWidth="2xl"
       >
         <ProductForm
+          initialData={editingProduct ?? undefined}
           onSuccess={handleAddProduct}
-          onCancel={() => setIsModalOpen(false)}
+          onCancel={() => {
+            setIsModalOpen(false);
+            setEditingProduct(null);
+          }}
         />
       </Modal>
     </AdminLayout>

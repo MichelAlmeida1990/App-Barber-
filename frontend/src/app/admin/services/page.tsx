@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import AdminLayout from '@/components/AdminLayout';
 import { 
   SparklesIcon, 
@@ -15,6 +15,8 @@ import { servicesAPI } from '@/lib/api';
 import toast from 'react-hot-toast';
 import Modal from '@/components/Modal';
 import ServiceForm from '@/components/forms/ServiceForm';
+
+const ADMIN_SERVICES_LS_KEY = 'admin_services_v1';
 
 const mockServices = [
   {
@@ -80,11 +82,62 @@ const mockServices = [
 ];
 
 export default function ServicesPage() {
-  const [services, setServices] = useState(mockServices);
+  const [hydrated, setHydrated] = useState(false);
+  const [services, setServices] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('todos');
   const [loading, setLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingService, setEditingService] = useState<any>(null);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(ADMIN_SERVICES_LS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) setServices(parsed);
+        else setServices(mockServices);
+      } else {
+        setServices(mockServices);
+      }
+    } catch (e) {
+      console.warn('Falha ao ler serviços do localStorage:', e);
+      setServices(mockServices);
+    } finally {
+      setHydrated(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      localStorage.setItem(ADMIN_SERVICES_LS_KEY, JSON.stringify(services));
+      // Notificar outras telas no MESMO TAB (o evento "storage" não dispara no mesmo documento)
+      window.dispatchEvent(new Event('admin_services_updated'));
+    } catch (e) {
+      console.warn('Falha ao salvar serviços no localStorage:', e);
+    }
+  }, [hydrated, services]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(ADMIN_SERVICES_LS_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed) || parsed.length === 0) return;
+      setServices(parsed);
+    } catch (e) {
+      console.warn('Falha ao ler serviços do localStorage:', e);
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(ADMIN_SERVICES_LS_KEY, JSON.stringify(services));
+    } catch (e) {
+      console.warn('Falha ao salvar serviços no localStorage:', e);
+    }
+  }, [services]);
 
   const filteredServices = services.filter(service => {
     const matchesSearch = 
@@ -111,8 +164,12 @@ export default function ServicesPage() {
   };
 
   const handleAddService = (newService: any) => {
-    setServices(prev => [...prev, newService]);
+    setServices(prev => {
+      const exists = prev.some((s: any) => s.id === newService.id);
+      return exists ? prev.map((s: any) => (s.id === newService.id ? { ...s, ...newService } : s)) : [...prev, newService];
+    });
     setIsModalOpen(false);
+    setEditingService(null);
   };
 
   const handleDeleteService = (serviceId: string) => {
@@ -272,7 +329,15 @@ export default function ServicesPage() {
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <button className="text-indigo-600 hover:text-indigo-900">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingService(service);
+                      setIsModalOpen(true);
+                    }}
+                    className="text-indigo-600 hover:text-indigo-900"
+                    title="Editar"
+                  >
                     <PencilIcon className="h-5 w-5" />
                   </button>
                   <button 
@@ -337,12 +402,16 @@ export default function ServicesPage() {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title="Novo Serviço"
-        maxWidth="xl"
+        title={editingService ? 'Editar Serviço' : 'Novo Serviço'}
+        maxWidth="2xl"
       >
         <ServiceForm
           onSuccess={handleAddService}
-          onCancel={() => setIsModalOpen(false)}
+          initialData={editingService ?? undefined}
+          onCancel={() => {
+            setIsModalOpen(false);
+            setEditingService(null);
+          }}
         />
       </Modal>
     </AdminLayout>

@@ -1,41 +1,138 @@
 'use client';
 
-import { useState} from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { generateId } from '@/lib/utils';
 
 interface AppointmentFormProps {
   onSuccess: (appointment: any) => void;
   onCancel: () => void;
+  onGoToClientCadastro?: () => void;
+  initialData?: any;
 }
 
-export default function AppointmentForm({ onSuccess, onCancel }: AppointmentFormProps) {
+type StoredClient = {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  status?: 'ativo' | 'inativo';
+};
+
+const ADMIN_CLIENTS_LS_KEY = 'admin_clients_v1';
+
+export default function AppointmentForm({ onSuccess, onCancel, onGoToClientCadastro, initialData }: AppointmentFormProps) {
   const [loading, setLoading] = useState(false);
+  const [clients, setClients] = useState<StoredClient[]>([]);
   const [formData, setFormData] = useState({
-    clientName: '',
-    clientPhone: '',
-    barberId: '',
-    serviceId: '',
-    date: '',
-    time: '',
-    notes: ''
+    clientId: initialData?.clientId || '',
+    barberId: initialData?.barberId || '',
+    serviceId: initialData?.serviceId || '',
+    date: initialData?.date || '',
+    time: initialData?.time || '',
+    notes: initialData?.notes || ''
   });
 
-  // Mock data - em produção, carregue da API
-  const mockBarbers = [
-    { id: '1', name: 'João Silva' },
-    { id: '2', name: 'Carlos Santos' },
-    { id: '3', name: 'Pedro Oliveira' }
-  ];
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(ADMIN_CLIENTS_LS_KEY);
+      if (!raw) {
+        setClients([]);
+        return;
+      }
+      const parsed = JSON.parse(raw) as StoredClient[];
+      if (!Array.isArray(parsed)) {
+        setClients([]);
+        return;
+      }
+      const active = parsed.filter((c) => (c.status ? c.status === 'ativo' : true));
+      setClients(active);
+    } catch (e) {
+      console.warn('Falha ao ler clientes do localStorage:', e);
+      setClients([]);
+    }
+  }, []);
 
-  const mockServices = [
-    { id: '1', name: 'Corte Masculino', price: 30, duration: 30 },
-    { id: '2', name: 'Barba', price: 20, duration: 20 },
-    { id: '3', name: 'Combo Completo', price: 45, duration: 45 },
-    { id: '4', name: 'Sobrancelha', price: 15, duration: 15 },
-    { id: '5', name: 'Hidratação', price: 25, duration: 25 },
-    { id: '6', name: 'Tratamento Premium', price: 80, duration: 60 }
-  ];
+  const selectedClient = useMemo(
+    () => clients.find((c) => c.id === formData.clientId),
+    [clients, formData.clientId]
+  );
+
+  const ADMIN_BARBERS_LS_KEY = 'admin_barbers_v1';
+  const ADMIN_SERVICES_LS_KEY = 'admin_services_v1';
+
+  const [barbers, setBarbers] = useState<{ id: string; name: string }[]>([]);
+  const [services, setServices] = useState<{ id: string; name: string; price: number; duration: number }[]>([]);
+
+  const loadBarbers = () => {
+    try {
+      const barbersRaw = localStorage.getItem(ADMIN_BARBERS_LS_KEY);
+      if (barbersRaw) {
+        const parsed = JSON.parse(barbersRaw) as any[];
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const activeBarbers = parsed
+            .filter(b => b.active !== false)
+            .map(b => ({ id: String(b.id), name: String(b.name || '') }))
+            .filter(b => b.id && b.name);
+          setBarbers(activeBarbers);
+        }
+      }
+    } catch (e) {
+      console.warn('Falha ao ler barbeiros do localStorage:', e);
+    }
+  };
+
+  const loadServices = () => {
+    try {
+      const servicesRaw = localStorage.getItem(ADMIN_SERVICES_LS_KEY);
+      if (servicesRaw) {
+        const parsed = JSON.parse(servicesRaw) as any[];
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const activeServices = parsed
+            .filter(s => s.active !== false)
+            .map(s => ({
+              id: String(s.id),
+              name: String(s.name || ''),
+              price: Number(s.price || 0),
+              duration: Number(s.duration || 30)
+            }))
+            .filter(s => s.id && s.name);
+          setServices(activeServices);
+        }
+      }
+    } catch (e) {
+      console.warn('Falha ao ler serviços do localStorage:', e);
+    }
+  };
+
+  useEffect(() => {
+    // Carregar dados iniciais
+    loadBarbers();
+    loadServices();
+
+    // Listener para mudanças no localStorage (de outras abas)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === ADMIN_BARBERS_LS_KEY) {
+        loadBarbers();
+      } else if (e.key === ADMIN_SERVICES_LS_KEY) {
+        loadServices();
+      }
+    };
+
+    // Listener customizado para mudanças na mesma aba
+    const handleBarbersUpdate = () => loadBarbers();
+    const handleServicesUpdate = () => loadServices();
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('admin_barbers_updated', handleBarbersUpdate);
+    window.addEventListener('admin_services_updated', handleServicesUpdate);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('admin_barbers_updated', handleBarbersUpdate);
+      window.removeEventListener('admin_services_updated', handleServicesUpdate);
+    };
+  }, []);
 
   const generateTimeSlots = () => {
     const slots = [];
@@ -61,22 +158,30 @@ export default function AppointmentForm({ onSuccess, onCancel }: AppointmentForm
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.clientName || !formData.clientPhone || !formData.barberId || !formData.serviceId || !formData.date || !formData.time) {
-      toast.error('Todos os campos obrigatórios devem ser preenchidos');
+    if (clients.length === 0) {
+      toast.error('Cadastre um cliente antes de agendar');
+      return;
+    }
+
+    if (!formData.clientId || !formData.barberId || !formData.serviceId || !formData.date || !formData.time) {
+      toast.error('Selecione o cliente e preencha os campos obrigatórios');
       return;
     }
 
     setLoading(true);
     try {
-      const selectedService = mockServices.find(s => s.id === formData.serviceId);
-      const selectedBarber = mockBarbers.find(b => b.id === formData.barberId);
+      const selectedService = services.find(s => s.id === formData.serviceId);
+      const selectedBarber = barbers.find(b => b.id === formData.barberId);
 
       const newAppointment = {
-        id: generateId('appointment'),
-        clientName: formData.clientName,
-        phone: formData.clientPhone,
+        id: initialData?.id || generateId('appointment'),
+        clientId: formData.clientId,
+        clientName: selectedClient?.name || '',
+        phone: selectedClient?.phone || '',
         barberName: selectedBarber?.name || '',
         service: selectedService?.name || '',
+        barberId: formData.barberId,
+        serviceId: formData.serviceId,
         date: formData.date,
         time: formData.time,
         duration: selectedService?.duration || 30,
@@ -96,41 +201,65 @@ export default function AppointmentForm({ onSuccess, onCancel }: AppointmentForm
     }
   };
 
-  const selectedService = mockServices.find(s => s.id === formData.serviceId);
+  const selectedService = services.find(s => s.id === formData.serviceId);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
+      {clients.length === 0 ? (
+        <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
+          <p className="text-sm text-yellow-800">
+            Para criar um agendamento, primeiro você precisa <b>cadastrar um cliente</b>.
+          </p>
+          <div className="mt-3 flex flex-col sm:flex-row gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                onCancel();
+                onGoToClientCadastro?.();
+              }}
+              className="inline-flex items-center justify-center px-4 py-2 rounded-md bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700"
+            >
+              Ir para cadastro de cliente
+            </button>
+            <button
+              type="button"
+              onClick={onCancel}
+              className="inline-flex items-center justify-center px-4 py-2 rounded-md border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2">
         <div>
-          <label htmlFor="clientName" className="block text-sm font-medium text-gray-700">
-            Nome do Cliente *
+          <label htmlFor="clientId" className="block text-sm font-medium text-gray-700">
+            Cliente *
           </label>
-          <input
-            type="text"
-            name="clientName"
-            id="clientName"
+          <select
+            name="clientId"
+            id="clientId"
             required
-            value={formData.clientName}
+            value={formData.clientId}
             onChange={handleInputChange}
-            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-sm shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-            placeholder="Nome completo do cliente"
-          />
+            disabled={clients.length === 0}
+            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+          >
+            <option value="">Selecione um cliente</option>
+            {clients.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}{c.phone ? ` — ${c.phone}` : ''}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div>
-          <label htmlFor="clientPhone" className="block text-sm font-medium text-gray-700">
-            Telefone do Cliente *
-          </label>
-          <input
-            type="tel"
-            name="clientPhone"
-            id="clientPhone"
-            required
-            value={formData.clientPhone}
-            onChange={handleInputChange}
-            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-sm shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-            placeholder="(11) 99999-9999"
-          />
+          <label className="block text-sm font-medium text-gray-700">Telefone</label>
+          <div className="mt-1 block w-full border border-gray-200 rounded-md px-3 py-2 text-sm bg-gray-50 text-gray-700">
+            {selectedClient?.phone || '—'}
+          </div>
         </div>
 
         <div>
@@ -146,11 +275,15 @@ export default function AppointmentForm({ onSuccess, onCancel }: AppointmentForm
             className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-sm shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
           >
             <option value="">Selecione um barbeiro</option>
-            {mockBarbers.map(barber => (
-              <option key={barber.id} value={barber.id}>
-                {barber.name}
-              </option>
-            ))}
+            {barbers.length > 0 ? (
+              barbers.map(barber => (
+                <option key={barber.id} value={barber.id}>
+                  {barber.name}
+                </option>
+              ))
+            ) : (
+              <option value="" disabled>Nenhum barbeiro cadastrado</option>
+            )}
           </select>
         </div>
 
@@ -167,11 +300,15 @@ export default function AppointmentForm({ onSuccess, onCancel }: AppointmentForm
             className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm sm:text-sm shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
           >
             <option value="">Selecione um serviço</option>
-            {mockServices.map(service => (
-              <option key={service.id} value={service.id}>
-                {service.name} - R$ {service.price} ({service.duration}min)
-              </option>
-            ))}
+            {services.length > 0 ? (
+              services.map(service => (
+                <option key={service.id} value={service.id}>
+                  {service.name} - R$ {service.price.toFixed(2)} ({service.duration}min)
+                </option>
+              ))
+            ) : (
+              <option value="" disabled>Nenhum serviço cadastrado</option>
+            )}
           </select>
         </div>
 

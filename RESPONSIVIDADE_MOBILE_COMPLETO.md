@@ -422,3 +422,10 @@ grid-cols-2 md:grid-cols-4
 
 🎉 **Sistema totalmente responsivo para mobile!** 🎉
 
+
+
+
+
+
+
+

@@ -318,3 +318,10 @@ xl: '1280px'  // Desktop large
 
 🎯 **Objetivo:** 95%+ de responsividade em todas as páginas
 
+
+
+
+
+
+
+

@@ -19,11 +19,12 @@ from app.api.analytics import router as analytics_router
 from app.api.ai import router as ai_router
 from app.api.commissions import router as commissions_router
 from app.api.barber_blocks import router as barber_blocks_router
+from app.api.service_sessions import router as service_sessions_router
 
 # Importar modelos para garantir que sejam registrados no Base.metadata
 from app.models import (
     User, Barbershop, Barber, Client, Service, 
-    Appointment, Commission, Product, BarberBlock
+    Appointment, Commission, Product, BarberBlock, ServiceSession
 )
 
 # Importar função de inicialização do banco
@@ -154,6 +155,7 @@ app.include_router(analytics_router, prefix="/api/v1/analytics", tags=["Analytic
 app.include_router(ai_router, prefix="/api/v1/ai", tags=["Inteligência Artificial"])
 app.include_router(commissions_router, prefix="/api/v1/commissions", tags=["Comissões"])
 app.include_router(barber_blocks_router, prefix="/api/v1/barber-blocks", tags=["Bloqueios de Agenda"])
+app.include_router(service_sessions_router, prefix="/api/v1", tags=["Sessões de Serviço"])
 
 # Evento de startup
 @app.on_event("startup")

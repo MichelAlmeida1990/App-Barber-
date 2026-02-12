@@ -1,26 +1,42 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { generateId } from '@/lib/utils';
 
 interface BarberFormProps {
   onSuccess: (barber: any) => void;
   onCancel: () => void;
+  initialData?: any;
 }
 
-export default function BarberForm({ onSuccess, onCancel }: BarberFormProps) {
+export default function BarberForm({ onSuccess, onCancel, initialData }: BarberFormProps) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    specialty: '',
-    experience: '',
-    commission: 35,
-    schedule: '',
-    notes: ''
+    name: initialData?.name || '',
+    email: initialData?.email || '',
+    phone: initialData?.phone || '',
+    specialty: initialData?.specialty || '',
+    experience: initialData?.experience || '',
+    commission: typeof initialData?.commission === 'number' ? initialData.commission : 35,
+    schedule: initialData?.schedule || '',
+    notes: initialData?.notes || ''
   });
+
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        name: initialData.name || '',
+        email: initialData.email || '',
+        phone: initialData.phone || '',
+        specialty: initialData.specialty || '',
+        experience: initialData.experience || '',
+        commission: typeof initialData.commission === 'number' ? initialData.commission : 35,
+        schedule: initialData.schedule || '',
+        notes: initialData.notes || ''
+      });
+    }
+  }, [initialData]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -41,7 +57,7 @@ export default function BarberForm({ onSuccess, onCancel }: BarberFormProps) {
     setLoading(true);
     try {
       const newBarber = {
-        id: generateId('barber'),
+        id: initialData?.id || generateId('barber'),
         ...formData,
         rating: 5.0,
         totalCuts: 0,
@@ -60,10 +76,10 @@ export default function BarberForm({ onSuccess, onCancel }: BarberFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
+      <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2">
         <div>
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="name" className="block text-xs sm:text-sm font-medium text-gray-700">
             Nome *
           </label>
           <input
@@ -73,7 +89,7 @@ export default function BarberForm({ onSuccess, onCancel }: BarberFormProps) {
             required
             value={formData.name}
             onChange={handleInputChange}
-            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-xs sm:text-sm shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
             placeholder="Nome completo"
           />
         </div>
@@ -89,7 +105,7 @@ export default function BarberForm({ onSuccess, onCancel }: BarberFormProps) {
             required
             value={formData.phone}
             onChange={handleInputChange}
-            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-xs sm:text-sm shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
             placeholder="(11) 99999-9999"
           />
         </div>
@@ -104,7 +120,7 @@ export default function BarberForm({ onSuccess, onCancel }: BarberFormProps) {
             id="email"
             value={formData.email}
             onChange={handleInputChange}
-            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-xs sm:text-sm shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
             placeholder="email@exemplo.com"
           />
         </div>
@@ -119,7 +135,7 @@ export default function BarberForm({ onSuccess, onCancel }: BarberFormProps) {
             required
             value={formData.specialty}
             onChange={handleInputChange}
-            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-xs sm:text-sm shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
           >
             <option value="">Selecione uma especialidade</option>
             <option value="Corte masculino e barba">Corte masculino e barba</option>
@@ -140,7 +156,7 @@ export default function BarberForm({ onSuccess, onCancel }: BarberFormProps) {
             id="experience"
             value={formData.experience}
             onChange={handleInputChange}
-            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-xs sm:text-sm shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
             placeholder="Ex: 5 anos"
           />
         </div>
@@ -157,7 +173,7 @@ export default function BarberForm({ onSuccess, onCancel }: BarberFormProps) {
             max="100"
             value={formData.commission}
             onChange={handleInputChange}
-            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-xs sm:text-sm shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
             placeholder="35"
           />
         </div>
@@ -193,20 +209,20 @@ export default function BarberForm({ onSuccess, onCancel }: BarberFormProps) {
         />
       </div>
 
-      <div className="flex justify-end space-x-3 pt-4">
+      <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-3 sm:pt-4 border-t border-gray-200">
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          className="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-md shadow-sm text-xs sm:text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
         >
           Cancelar
         </button>
         <button
           type="submit"
           disabled={loading}
-          className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full sm:w-auto px-4 py-2 border border-transparent rounded-md shadow-sm text-xs sm:text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {loading ? 'Criando...' : 'Criar Barbeiro'}
+          {loading ? (initialData ? 'Salvando...' : 'Criando...') : (initialData ? 'Salvar Alterações' : 'Criar Barbeiro')}
         </button>
       </div>
     </form>

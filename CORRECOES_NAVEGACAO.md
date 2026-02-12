@@ -288,3 +288,10 @@ Home > Área do Barbeiro > Bloqueios
 **🎯 Navegação do sistema agora está 100% funcional e intuitiva!**
 
 
+
+
+
+
+
+
+

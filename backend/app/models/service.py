@@ -30,6 +30,11 @@ class Service(Base):
     preparation_time = Column(Integer, default=0)  # Tempo de preparação
     cleanup_time = Column(Integer, default=5)      # Tempo de limpeza
     
+    # === PAUSA (para serviços químicos como progressiva) ===
+    has_pause = Column(Boolean, default=False)  # Se o serviço requer pausa
+    pause_duration_minutes = Column(Integer, default=0)  # Duração da pausa (ex: 60min para progressiva)
+    pause_description = Column(Text, nullable=True)  # Descrição da pausa (ex: "Aguardar produto fazer efeito")
+    
     # === CONFIGURAÇÕES ===
     is_active = Column(Boolean, default=True)
     is_featured = Column(Boolean, default=False)

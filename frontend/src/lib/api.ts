@@ -28,23 +28,27 @@ export const API_ENDPOINTS = {
     MY_APPOINTMENTS: `${API_PREFIX}/appointments/my-appointments`,
     BARBER_APPOINTMENTS: `${API_PREFIX}/appointments/barber-appointments`,
     STATUS_SIMPLE: (id: number) => `${API_PREFIX}/appointments/${id}/status-simple`,
+    TEST: `${API_PREFIX}/appointments/test`,
   },
   
   // Barbers
   BARBERS: {
     BASE: `${API_PREFIX}/barbers`,
     LIST: `${API_PREFIX}/barbers/`,
+    TEST: `${API_PREFIX}/barbers/test`,
   },
   
   // Services
   SERVICES: {
     BASE: `${API_PREFIX}/services`,
     LIST: `${API_PREFIX}/services/`,
+    TEST: `${API_PREFIX}/services/test`,
   },
   
   // Clients
   CLIENTS: {
     BASE: `${API_PREFIX}/clients`,
+    TEST: `${API_PREFIX}/clients/test`,
   },
   
   // Commissions
@@ -67,6 +71,7 @@ export const API_ENDPOINTS = {
   // Analytics
   ANALYTICS: {
     BASE: `${API_PREFIX}/analytics`,
+    TEST: `${API_PREFIX}/analytics/test`,
   },
   
   // Health
@@ -82,14 +87,9 @@ export async function authenticatedFetch(
 ): Promise<Response> {
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
   
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-    ...options.headers,
-  };
-  
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
+  const headers = new Headers(options.headers);
+  if (!headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
+  if (token) headers.set('Authorization', `Bearer ${token}`);
   
   return fetch(url, {
     ...options,
@@ -112,15 +112,24 @@ async function apiTest(url: string) {
 }
 
 export const appointmentsAPI = {
-  test: () => apiTest(API_ENDPOINTS.APPOINTMENTS.BASE),
+  // usar /test para evitar redirect de barra final e padronizar resposta do backend
+  test: () => apiTest(API_ENDPOINTS.APPOINTMENTS.TEST),
 };
 
 export const analyticsAPI = {
-  test: () => apiTest(API_ENDPOINTS.ANALYTICS.BASE),
+  test: () => apiTest(API_ENDPOINTS.ANALYTICS.TEST),
 };
 
 export const servicesAPI = {
-  test: () => apiTest(API_ENDPOINTS.SERVICES.BASE),
+  test: () => apiTest(API_ENDPOINTS.SERVICES.TEST),
+};
+
+export const clientsAPI = {
+  test: () => apiTest(API_ENDPOINTS.CLIENTS.TEST),
+};
+
+export const barbersAPI = {
+  test: () => apiTest(API_ENDPOINTS.BARBERS.TEST),
 };
 
 // Alguns endpoints existem no backend, mas nem todos estão listados em API_ENDPOINTS.
