@@ -34,12 +34,10 @@ if DATABASE_URL.startswith("sqlite"):
     }
     poolclass = NullPool  # NullPool para evitar problemas de concorrência
 else:
-    # PostgreSQL com opções SSL desabilitadas (Render exige ajustes)
-    import ssl
+    # PostgreSQL com opções SSL otimizadas
     connect_args = {
         "connect_timeout": 10,
-        "options": "-c statement_timeout=30000",  # 30s timeout por statement
-        "sslmode": "disable",  # Forçar SSL desabilitado via código
+        "options": "-c statement_timeout=30000"  # 30s timeout por statement
     }
     poolclass = None
 
