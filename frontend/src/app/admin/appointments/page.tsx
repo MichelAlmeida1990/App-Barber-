@@ -281,7 +281,7 @@ export default function AdminAppointmentsPage() {
                   serviceId: (editingAppointment as any).service_id,
                   date: editingAppointment.appointment_date,
                   time: editingAppointment.appointment_date,
-                  notes: editingAppointment.notes,
+                  notes: (editingAppointment as any).notes || '',
                 }
               : undefined
           }
