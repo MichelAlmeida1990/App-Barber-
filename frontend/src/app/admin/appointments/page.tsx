@@ -285,7 +285,7 @@ export default function AdminAppointmentsPage() {
                 }
               : undefined
           }
-          onSuccess={(a) => handleCreateAppointment(a as AppointmentFormResult)}
+          onSuccess={(a) => handleCreateAppointment(a as any)}
           onCancel={() => {
             setIsModalOpen(false);
             setEditingAppointment(null);
