@@ -15,21 +15,31 @@ logger = logging.getLogger(__name__)
 # === CONFIGURAÇÃO DO BANCO ===
 
 # Usar DATABASE_URL da variável de ambiente, ou SQLite como fallback para desenvolvimento
-DATABASE_URL = settings.database_url or "sqlite:///./barbershop_dev.db"
+database_url = settings.database_url or "sqlite:///./barbershop_dev.db"
 
-# Se estiver usando Render PostgreSQL, garantir que tem sslmode=require
-if DATABASE_URL.startswith("postgresql") and "render.com" in DATABASE_URL:
-    if "sslmode" not in DATABASE_URL:
-        separator = "&" if "?" in DATABASE_URL else "?"
-        DATABASE_URL = f"{DATABASE_URL}{separator}sslmode=require"
-        logger.info(f"✅ Adicionado sslmode=require à URL para Render")
+# FORÇA BRUTA: Se for Render PostgreSQL, garantir SSL
+if database_url.startswith("postgresql") and "render.com" in database_url:
+    logger.info("🔨 Detectado Render PostgreSQL - Forçando SSL...")
+    
+    # Remove sslmode antigo se existir
+    if "?sslmode=" in database_url:
+        database_url = database_url.split("?sslmode=")[0]
+    if "&sslmode=" in database_url:
+        database_url = database_url.split("&sslmode=")[0]
+    
+    # Adiciona sslmode=require no final
+    separator = "&" if "?" in database_url else "?"
+    database_url = f"{database_url}{separator}sslmode=require"
+    logger.info(f"✅ URL com SSL forçado: {database_url[:80]}...")
+
+DATABASE_URL = database_url
 
 # Log para debug
-logger.info(f"🔍 DATABASE_URL configurado: {DATABASE_URL[:50]}..." if len(DATABASE_URL) > 50 else f"🔍 DATABASE_URL configurado: {DATABASE_URL}")
+logger.info(f"🔍 DATABASE_URL: {DATABASE_URL[:80]}..." if len(DATABASE_URL) > 80 else f"🔍 DATABASE_URL: {DATABASE_URL}")
 if DATABASE_URL.startswith("sqlite"):
-    logger.warning("⚠️ Usando SQLite! Verifique se DATABASE_URL está configurado corretamente.")
+    logger.warning("⚠️ Usando SQLite")
 else:
-    logger.info("✅ Usando PostgreSQL")
+    logger.info("✅ Usando PostgreSQL com SSL")
 
 # Configurar connect_args baseado no tipo de banco
 connect_args = {}
@@ -41,11 +51,20 @@ if DATABASE_URL.startswith("sqlite"):
     }
     poolclass = NullPool  # NullPool para evitar problemas de concorrência
 else:
-    # PostgreSQL - Render exige SSL
+    # PostgreSQL - Opções SSL para Render
     connect_args = {
         "connect_timeout": 10,
-        "options": "-c statement_timeout=30000",  # 30s timeout por statement
+        "options": "-c statement_timeout=30000",
     }
+    
+    # Se for Render, adicionar opções SSL mais agressivas
+    if "render.com" in DATABASE_URL:
+        logger.info("🔐 Aplicando opções SSL para Render...")
+        connect_args.update({
+            "sslmode": "require",  # Força SSL
+            "sslcert": "",  # Não valida certificado (importante para Render)
+        })
+    
     poolclass = None
 
 # Criar engine do SQLAlchemy
