@@ -17,6 +17,13 @@ logger = logging.getLogger(__name__)
 # Usar DATABASE_URL da variável de ambiente, ou SQLite como fallback para desenvolvimento
 DATABASE_URL = settings.database_url or "sqlite:///./barbershop_dev.db"
 
+# Se estiver usando Render PostgreSQL, garantir que tem sslmode=require
+if DATABASE_URL.startswith("postgresql") and "render.com" in DATABASE_URL:
+    if "sslmode" not in DATABASE_URL:
+        separator = "&" if "?" in DATABASE_URL else "?"
+        DATABASE_URL = f"{DATABASE_URL}{separator}sslmode=require"
+        logger.info(f"✅ Adicionado sslmode=require à URL para Render")
+
 # Log para debug
 logger.info(f"🔍 DATABASE_URL configurado: {DATABASE_URL[:50]}..." if len(DATABASE_URL) > 50 else f"🔍 DATABASE_URL configurado: {DATABASE_URL}")
 if DATABASE_URL.startswith("sqlite"):
@@ -34,12 +41,10 @@ if DATABASE_URL.startswith("sqlite"):
     }
     poolclass = NullPool  # NullPool para evitar problemas de concorrência
 else:
-    # PostgreSQL com opções SSL desabilitadas (Render exige ajustes)
-    import ssl
+    # PostgreSQL - Render exige SSL
     connect_args = {
         "connect_timeout": 10,
         "options": "-c statement_timeout=30000",  # 30s timeout por statement
-        "sslmode": "disable",  # Forçar SSL desabilitado via código
     }
     poolclass = None
 
