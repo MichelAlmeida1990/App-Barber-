@@ -276,12 +276,12 @@ export default function AdminAppointmentsPage() {
             editingAppointment
               ? {
                   id: editingAppointment.id,
-                  clientId: (editingAppointment as any).clientId,
-                  barberId: (editingAppointment as any).barberId,
-                  serviceId: (editingAppointment as any).serviceId,
-                  date: editingAppointment.data,
-                  time: editingAppointment.hora,
-                  notes: (editingAppointment as any).notes,
+                  clientId: (editingAppointment as any).client_id,
+                  barberId: (editingAppointment as any).barber_id,
+                  serviceId: (editingAppointment as any).service_id,
+                  date: editingAppointment.appointment_date,
+                  time: editingAppointment.appointment_date,
+                  notes: editingAppointment.notes,
                 }
               : undefined
           }
