@@ -53,19 +53,20 @@ if DATABASE_URL.startswith("sqlite"):
 else:
     # PostgreSQL - Opções SSL para Render
     connect_args = {
-        "connect_timeout": 10,
+        "connect_timeout": 30,  # Aumentado para 30s para dar tempo ao SSL
         "options": "-c statement_timeout=30000",
     }
     
-    # Se for Render, adicionar opções SSL mais agressivas
+    # Se for Render, usar sslmode=allow + verificação de conexão
     if "render.com" in DATABASE_URL:
-        logger.info("🔐 Aplicando opções SSL para Render...")
+        logger.info("🔐 Aplicando opções SSL para Render (allow mode com pool_pre_ping)...")
         connect_args.update({
-            "sslmode": "require",  # Força SSL
-            "sslcert": "",  # Não valida certificado (importante para Render)
+            "sslmode": "allow",  # Aceita SSL se disponível, cai em plain text se falhar
         })
-    
-    poolclass = None
+        # pool_pre_ping testa conexão antes de usar
+        poolclass = None
+    else:
+        poolclass = None
 
 # Criar engine do SQLAlchemy
 if poolclass:
@@ -88,9 +89,11 @@ else:
     engine = create_engine(
         DATABASE_URL,
         echo=settings.database_echo,
+        connect_args=connect_args,  # Aplicar connect_args ao PostgreSQL
         pool_pre_ping=True,  # Verificar conexão antes de usar
         pool_size=5,
-        max_overflow=10
+        max_overflow=10,
+        pool_recycle=3600  # Reciclar conexões a cada hora para evitar timeouts
     )
 
 # Criar SessionLocal
