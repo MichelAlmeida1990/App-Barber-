@@ -95,11 +95,6 @@ allowed_origins.extend([
     "https://app-barber-iota-git-main-michelalmeida1990.vercel.app",  # Git branch URLs
 ])
 
-# Log dos origins permitidos para debug
-import logging
-logger = logging.getLogger(__name__)
-logger.info(f"🌐 CORS configurado para: {allowed_origins}")
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
