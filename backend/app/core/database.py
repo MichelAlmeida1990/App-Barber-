@@ -17,29 +17,29 @@ logger = logging.getLogger(__name__)
 # Usar DATABASE_URL da variável de ambiente, ou SQLite como fallback para desenvolvimento
 database_url = settings.database_url or "sqlite:///./barbershop_dev.db"
 
-# FORÇA BRUTA: Se for Render PostgreSQL, garantir SSL
-if database_url.startswith("postgresql") and "render.com" in database_url:
-    logger.info("🔨 Detectado Render PostgreSQL - Forçando SSL...")
-    
-    # Remove sslmode antigo se existir
+# Limpar sslmode da URL se existir (será controlado via connect_args)
+if database_url.startswith("postgresql"):
+    # Remove qualquer sslmode da URL para evitar conflitos
     if "?sslmode=" in database_url:
         database_url = database_url.split("?sslmode=")[0]
     if "&sslmode=" in database_url:
         database_url = database_url.split("&sslmode=")[0]
     
-    # Adiciona sslmode=require no final
-    separator = "&" if "?" in database_url else "?"
-    database_url = f"{database_url}{separator}sslmode=require"
-    logger.info(f"✅ URL com SSL forçado: {database_url[:80]}...")
+    # Detectar se é URL interna ou externa do Render
+    is_render_internal = database_url.startswith("postgresql") and "dpg-" in database_url and ".render.com" not in database_url
+    is_render_external = "render.com" in database_url
+    
+    if is_render_internal:
+        logger.info("✅ Detectado Render PostgreSQL (URL INTERNA) - Sem SSL necessário")
+    elif is_render_external:
+        logger.info("🔐 Detectado Render PostgreSQL (URL EXTERNA) - SSL será configurado via connect_args")
+    else:
+        logger.info("✅ Usando PostgreSQL genérico")
 
 DATABASE_URL = database_url
 
 # Log para debug
 logger.info(f"🔍 DATABASE_URL: {DATABASE_URL[:80]}..." if len(DATABASE_URL) > 80 else f"🔍 DATABASE_URL: {DATABASE_URL}")
-if DATABASE_URL.startswith("sqlite"):
-    logger.warning("⚠️ Usando SQLite")
-else:
-    logger.info("✅ Usando PostgreSQL com SSL")
 
 # Configurar connect_args baseado no tipo de banco
 connect_args = {}
@@ -51,22 +51,25 @@ if DATABASE_URL.startswith("sqlite"):
     }
     poolclass = NullPool  # NullPool para evitar problemas de concorrência
 else:
-    # PostgreSQL - Opções SSL para Render
+    # PostgreSQL
     connect_args = {
-        "connect_timeout": 30,  # Aumentado para 30s para dar tempo ao SSL
+        "connect_timeout": 30,
         "options": "-c statement_timeout=30000",
     }
     
-    # Se for Render, usar sslmode=allow + verificação de conexão
-    if "render.com" in DATABASE_URL:
-        logger.info("🔐 Aplicando opções SSL para Render (allow mode com pool_pre_ping)...")
-        connect_args.update({
-            "sslmode": "allow",  # Aceita SSL se disponível, cai em plain text se falhar
-        })
-        # pool_pre_ping testa conexão antes de usar
-        poolclass = None
-    else:
-        poolclass = None
+    # Detectar tipo de conexão Render
+    is_render_internal = DATABASE_URL.startswith("postgresql") and "dpg-" in DATABASE_URL and ".render.com" not in DATABASE_URL
+    is_render_external = ".render.com" in DATABASE_URL
+    
+    if is_render_internal:
+        # URL INTERNA do Render: NÃO precisa de SSL (rede privada)
+        logger.info("🔗 Conexão interna Render - sem SSL")
+    elif is_render_external:
+        # URL EXTERNA do Render: precisa de SSL
+        logger.info("🔐 Conexão externa Render - com SSL require")
+        connect_args["sslmode"] = "require"
+    
+    poolclass = None
 
 # Criar engine do SQLAlchemy
 if poolclass:
