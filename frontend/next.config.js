@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // v2: Correções de CSP e conectividade Supabase
   /**
    * Evita o Next inferir a raiz do workspace como C:\Users\miche por causa de lockfiles fora do projeto,
    * o que pode quebrar o output tracing e gerar EPERM em ambientes com OneDrive/ACL.
