@@ -25,9 +25,14 @@ if DATABASE_URL.startswith("postgres://"):
 # Não aplicar para localhost/127.0.0.1
 if DATABASE_URL.startswith("postgresql"):
     is_local = "localhost" in DATABASE_URL or "127.0.0.1" in DATABASE_URL
-    if not is_local and "sslmode" not in DATABASE_URL:
-        separator = "&" if "?" in DATABASE_URL else "?"
-        DATABASE_URL += f"{separator}sslmode=require"
+    if not is_local:
+        if "sslmode=" in DATABASE_URL:
+            import re
+            # Substituir qualquer valor de sslmode por require
+            DATABASE_URL = re.sub(r'sslmode=[^&]+', 'sslmode=require', DATABASE_URL)
+        else:
+            separator = "&" if "?" in DATABASE_URL else "?"
+            DATABASE_URL += f"{separator}sslmode=require"
     
     # Atualizar o settings para consistência nos logs
     settings.database_url = DATABASE_URL
