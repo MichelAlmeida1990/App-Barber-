@@ -61,7 +61,7 @@ class Barber(Base):
     # === RELACIONAMENTOS ===
     # barbershop = relationship("Barbershop", back_populates="barbers")
     # user = relationship("User", back_populates="barber_profile")
-    appointments = relationship("Appointment", back_populates="barber", cascade="all, delete-orphan")
+    # appointments = relationship("Appointment", back_populates="barber", cascade="all, delete-orphan")
     # services = relationship("Service", back_populates="barber", cascade="all, delete-orphan")
     commissions = relationship("Commission", back_populates="barber", cascade="all, delete-orphan")
     blocks = relationship("BarberBlock", back_populates="barber", cascade="all, delete-orphan")

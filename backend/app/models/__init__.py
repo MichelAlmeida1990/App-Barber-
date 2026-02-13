@@ -8,7 +8,6 @@ from .appointment import Appointment
 from .commission import Commission, CommissionType
 from .product import Product
 from .barber_block import BarberBlock
-from .service_session import ServiceSession
 
 # Garantir que todos os modelos sejam importados para o SQLAlchemy
 __all__ = [
@@ -21,6 +20,5 @@ __all__ = [
     "Commission",
     "CommissionType",
     "Product",
-    "BarberBlock",
-    "ServiceSession"
+    "BarberBlock"
 ] 

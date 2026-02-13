@@ -26,8 +26,7 @@ export default function GoogleLoginButton({
     
     try {
       const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "411190439185-648kbj8erbrq4kvcappp3ncspoeoam1t.apps.googleusercontent.com";
-      const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_URL || window.location.origin;
-      const redirectUri = `${frontendUrl}/auth/google/callback`;
+      const redirectUri = `${window.location.origin}/auth/google/callback`;
       const scope = "email profile";
       
       // Criar URL de autorização do Google

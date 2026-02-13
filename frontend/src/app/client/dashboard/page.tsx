@@ -77,20 +77,6 @@ export default function ClientDashboard() {
     setLoading(true);
     
     try {
-      // Limpar agendamentos expirados PRIMEIRO
-      try {
-        await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/appointments/cleanup/expired`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-      } catch (cleanupError) {
-        console.warn('Aviso ao limpar agendamentos expirados:', cleanupError);
-        // Não bloqueia o carregamento se limpeza falhar
-      }
-
       const appointmentsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/appointments/my-appointments`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -112,7 +98,7 @@ export default function ClientDashboard() {
       
       if (barbersResponse.ok) {
         const barbersData = await barbersResponse.json();
-        setBarbers(barbersData.barbers || barbersData || []);
+        setBarbers(barbersData);
       }
 
       const servicesResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/services/`, {
@@ -124,7 +110,7 @@ export default function ClientDashboard() {
       
       if (servicesResponse.ok) {
         const servicesData = await servicesResponse.json();
-        setServices(servicesData.services || servicesData || []);
+        setServices(servicesData);
       }
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
@@ -161,42 +147,6 @@ export default function ClientDashboard() {
     ['pending', 'confirmed'].includes(a.status)
   );
   const completedAppointments = appointments.filter(a => a.status === 'completed');
-
-  // Agenda semanal - organiza agendamentos por dia da semana
-  const getWeeklyAgenda = () => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const weekDays: any = {};
-    
-    // Inicializar 7 dias da semana
-    const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'];
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(today);
-      date.setDate(date.getDate() + i);
-      const key = date.toISOString().split('T')[0];
-      weekDays[key] = {
-        date: date,
-        dayName: dayNames[date.getDay()],
-        dayNum: date.getDate(),
-        appointments: []
-      };
-    }
-    
-    // Agrupar agendamentos por dia (apenas próxima semana)
-    upcomingAppointments.forEach((apt) => {
-      const aptDate = new Date(apt.appointment_date);
-      aptDate.setHours(0, 0, 0, 0);
-      const key = aptDate.toISOString().split('T')[0];
-      
-      if (weekDays[key]) {
-        weekDays[key].appointments.push(apt);
-      }
-    });
-    
-    return Object.values(weekDays);
-  };
-
-  const weeklyAgenda = getWeeklyAgenda();
 
   if (loading) {
     return (
@@ -328,115 +278,105 @@ export default function ClientDashboard() {
           </div>
 
           {/* Appointments Section */}
-          <div className="mb-8">
-            <h3 className="text-2xl font-bold text-white mb-6 flex items-center">
-              <CalendarIcon className="w-7 h-7 mr-2 text-purple-400" />
-              Agenda da Semana
-            </h3>
-            
-            {/* Weekly Calendar Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-7 gap-3">
-              {weeklyAgenda.map((day: any, idx: number) => (
-                <div key={idx} className="group relative">
-                  <div className={`absolute -inset-0.5 bg-gradient-to-r ${day.appointments.length > 0 ? 'from-purple-600 to-pink-600' : 'from-gray-600 to-gray-700'} rounded-xl blur opacity-40 group-hover:opacity-60 transition duration-300`}></div>
-                  <div className={`relative backdrop-blur-xl border rounded-xl p-4 transition-all duration-300 ${
-                    day.appointments.length > 0
-                      ? 'bg-white/15 border-white/30 hover:scale-105'
-                      : 'bg-white/5 border-white/10'
-                  }`}>
-                    {/* Day Header */}
-                    <div className="text-center mb-3 pb-3 border-b border-white/10">
-                      <p className="text-sm font-semibold text-purple-300">{day.dayName}</p>
-                      <p className="text-2xl font-bold text-white">{day.dayNum}</p>
-                    </div>
-                    
-                    {/* Appointments for this day */}
-                    {day.appointments.length === 0 ? (
-                      <div className="text-center py-4">
-                        <p className="text-xs text-gray-400">Sem agendamentos</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        {day.appointments.map((apt: any) => {
-                          const statusInfo = getStatusInfo(apt.status);
-                          const time = new Date(apt.appointment_date).toLocaleTimeString('pt-BR', { 
-                            hour: '2-digit', 
-                            minute: '2-digit' 
-                          });
-                          return (
-                            <div key={apt.id} className="bg-white/10 rounded-lg p-2 text-xs border border-white/10">
-                              <p className="font-semibold text-white truncate">{apt.barber_name}</p>
-                              <p className="text-purple-300">{time}</p>
-                              <p className={`text-xs mt-1 inline-block px-2 py-1 rounded bg-gradient-to-r ${statusInfo.color} text-white`}>
-                                {statusInfo.label}
-                              </p>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Upcoming Appointments */}
+            <div>
+              <h3 className="text-2xl font-bold text-white mb-4 flex items-center">
+                <CalendarIcon className="w-7 h-7 mr-2 text-purple-400" />
+                Próximos Agendamentos
+              </h3>
+              <div className="space-y-4">
+                {upcomingAppointments.length === 0 ? (
+                  <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-8 text-center">
+                    <CalendarIcon className="w-16 h-16 text-purple-400/50 mx-auto mb-4" />
+                    <p className="text-purple-200">Nenhum agendamento próximo</p>
+                    <button
+                      onClick={() => setShowBooking(true)}
+                      className="mt-4 px-6 py-2 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg text-white font-medium hover:scale-105 transition-transform"
+                    >
+                      Agendar Agora
+                    </button>
                   </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Summary */}
-            <div className="mt-6 backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-purple-200 text-sm">Total de agendamentos esta semana</p>
-                  <p className="text-3xl font-bold text-white">{upcomingAppointments.length}</p>
-                </div>
-                <button
-                  onClick={() => setShowBooking(true)}
-                  className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg text-white font-medium hover:scale-105 transition-transform"
-                >
-                  + Novo Agendamento
-                </button>
+                ) : (
+                  upcomingAppointments.map((appointment) => {
+                    const statusInfo = getStatusInfo(appointment.status);
+                    const StatusIcon = statusInfo.icon;
+                    
+                    return (
+                      <div key={appointment.id} className="group relative">
+                        <div className={`absolute -inset-0.5 bg-gradient-to-r ${statusInfo.color} rounded-2xl blur opacity-50 group-hover:opacity-75 transition duration-500`}></div>
+                        <div className="relative backdrop-blur-xl bg-white/10 border border-white/20 rounded-2xl p-6 hover:transform hover:scale-[1.02] transition-all duration-300">
+                          <div className="flex items-start justify-between mb-4">
+                            <div>
+                              <h4 className="text-lg font-bold text-white mb-1">{appointment.barber_name}</h4>
+                              <p className="text-purple-200 text-sm">{new Date(appointment.appointment_date).toLocaleString('pt-BR')}</p>
+                            </div>
+                            <div className={`px-3 py-1 bg-gradient-to-r ${statusInfo.color} rounded-lg flex items-center space-x-1`}>
+                              <StatusIcon className="w-4 h-4 text-white" />
+                              <span className="text-white text-sm font-medium">{statusInfo.label}</span>
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            {appointment.services?.map((service, idx) => (
+                              <div key={idx} className="flex items-center justify-between text-sm">
+                                <span className="text-purple-100">{service.name}</span>
+                                <span className="text-white font-semibold">R$ {service.price.toFixed(2)}</span>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="mt-4 pt-4 border-t border-white/10 flex items-center justify-between">
+                            <span className="text-purple-200 text-sm font-medium">Total</span>
+                            <span className="text-2xl font-bold text-white">R$ {appointment.total_price?.toFixed(2) || '0.00'}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </div>
             </div>
-          </div>
 
-          {/* Recent History */}
-          <div className="mt-8">
-            <h3 className="text-2xl font-bold text-white mb-6 flex items-center">
-              <CheckCircleIcon className="w-7 h-7 mr-2 text-green-400" />
-              Histórico Recente
-            </h3>
-            <div className="space-y-4">
-              {completedAppointments.length === 0 ? (
-                <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-8 text-center">
-                  <CheckCircleIcon className="w-16 h-16 text-green-400/50 mx-auto mb-4" />
-                  <p className="text-purple-200">Nenhum serviço concluído ainda</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {completedAppointments.slice(0, 6).map((appointment) => (
+            {/* Recent History */}
+            <div>
+              <h3 className="text-2xl font-bold text-white mb-4 flex items-center">
+                <CheckCircleIcon className="w-7 h-7 mr-2 text-green-400" />
+                Histórico Recente
+              </h3>
+              <div className="space-y-4">
+                {completedAppointments.length === 0 ? (
+                  <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-2xl p-8 text-center">
+                    <CheckCircleIcon className="w-16 h-16 text-green-400/50 mx-auto mb-4" />
+                    <p className="text-purple-200">Nenhum serviço concluído ainda</p>
+                  </div>
+                ) : (
+                  completedAppointments.slice(0, 3).map((appointment) => (
                     <div key={appointment.id} className="group relative">
                       <div className="absolute -inset-0.5 bg-gradient-to-r from-green-600 to-emerald-600 rounded-2xl blur opacity-40 group-hover:opacity-60 transition duration-500"></div>
                       <div className="relative backdrop-blur-xl bg-white/10 border border-white/20 rounded-2xl p-6 hover:transform hover:scale-[1.02] transition-all duration-300">
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="p-3 bg-green-500/20 rounded-xl">
-                            <CheckCircleIcon className="w-6 h-6 text-green-400" />
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-4">
+                            <div className="p-3 bg-green-500/20 rounded-xl">
+                              <CheckCircleIcon className="w-6 h-6 text-green-400" />
+                            </div>
+                            <div>
+                              <h4 className="text-white font-semibold">{appointment.barber_name}</h4>
+                              <p className="text-purple-200 text-sm">{new Date(appointment.appointment_date).toLocaleDateString('pt-BR')}</p>
+                            </div>
                           </div>
-                          <span className="text-white font-bold text-lg">R$ {appointment.total_price?.toFixed(2) || '0.00'}</span>
-                        </div>
-                        <div>
-                          <h4 className="text-white font-semibold mb-1">{appointment.barber_name}</h4>
-                          <p className="text-purple-200 text-sm">{new Date(appointment.appointment_date).toLocaleDateString('pt-BR')}</p>
+                          <span className="text-white font-bold">R$ {appointment.total_price?.toFixed(2) || '0.00'}</span>
                         </div>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
+                  ))
+                )}
+              </div>
             </div>
           </div>
 
           {/* Quick Action */}
           <div className="mt-8">
             <Link
-              href="/consultar-agendamento"
+              href="/consultar-agendamento.html"
               target="_blank"
               className="block group relative"
             >

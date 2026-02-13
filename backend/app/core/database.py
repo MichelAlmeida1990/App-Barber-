@@ -1,7 +1,7 @@
-from sqlalchemy import create_engine, MetaData, text, event
+from sqlalchemy import create_engine, MetaData, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
-from sqlalchemy.pool import StaticPool, NullPool
+from sqlalchemy.pool import StaticPool
 import redis
 from typing import Generator
 import logging
@@ -15,60 +15,29 @@ logger = logging.getLogger(__name__)
 # === CONFIGURAÇÃO DO BANCO ===
 
 # Usar DATABASE_URL da variável de ambiente, ou SQLite como fallback para desenvolvimento
-database_url = settings.database_url or "sqlite:///./barbershop_dev.db"
+DATABASE_URL = settings.database_url or "sqlite:///./barbershop_dev.db"
 
-# Limpar sslmode da URL se existir (será controlado via connect_args)
-if database_url.startswith("postgresql"):
-    # Remove qualquer sslmode da URL para evitar conflitos
-    if "?sslmode=" in database_url:
-        database_url = database_url.split("?sslmode=")[0]
-    if "&sslmode=" in database_url:
-        database_url = database_url.split("&sslmode=")[0]
-    
-    # Detectar se é URL interna ou externa do Render
-    is_render_internal = database_url.startswith("postgresql") and "dpg-" in database_url and ".render.com" not in database_url
-    is_render_external = "render.com" in database_url
-    
-    if is_render_internal:
-        logger.info("✅ Detectado Render PostgreSQL (URL INTERNA) - Sem SSL necessário")
-    elif is_render_external:
-        logger.info("🔐 Detectado Render PostgreSQL (URL EXTERNA) - SSL será configurado via connect_args")
-    else:
-        logger.info("✅ Usando PostgreSQL genérico")
-
-DATABASE_URL = database_url
+# Garantir sslmode=require para PostgreSQL (exigido pelo Render e Supabase)
+if DATABASE_URL.startswith("postgresql") and "sslmode" not in DATABASE_URL:
+    separator = "&" if "?" in DATABASE_URL else "?"
+    DATABASE_URL += f"{separator}sslmode=require"
+    # Atualizar o settings também para consistência nos logs
+    settings.database_url = DATABASE_URL
 
 # Log para debug
-logger.info(f"🔍 DATABASE_URL: {DATABASE_URL[:80]}..." if len(DATABASE_URL) > 80 else f"🔍 DATABASE_URL: {DATABASE_URL}")
+logger.info(f"🔍 DATABASE_URL configurado: {DATABASE_URL[:50]}..." if len(DATABASE_URL) > 50 else f"🔍 DATABASE_URL configurado: {DATABASE_URL}")
+if DATABASE_URL.startswith("sqlite"):
+    logger.warning("⚠️ Usando SQLite! Verifique se DATABASE_URL está configurado corretamente.")
+else:
+    logger.info("✅ Usando PostgreSQL")
 
 # Configurar connect_args baseado no tipo de banco
 connect_args = {}
 if DATABASE_URL.startswith("sqlite"):
-    # SQLite com timeout e thread safety para FastAPI async
-    connect_args = {
-        "check_same_thread": False,
-        "timeout": 30,  # 30 segundos timeout para evitar locks
-    }
-    poolclass = NullPool  # NullPool para evitar problemas de concorrência
+    connect_args = {"check_same_thread": False}
+    poolclass = StaticPool
 else:
-    # PostgreSQL
-    connect_args = {
-        "connect_timeout": 30,
-        "options": "-c statement_timeout=30000",
-    }
-    
-    # Detectar tipo de conexão Render
-    is_render_internal = DATABASE_URL.startswith("postgresql") and "dpg-" in DATABASE_URL and ".render.com" not in DATABASE_URL
-    is_render_external = ".render.com" in DATABASE_URL
-    
-    if is_render_internal:
-        # URL INTERNA do Render: NÃO precisa de SSL (rede privada)
-        logger.info("🔗 Conexão interna Render - sem SSL")
-    elif is_render_external:
-        # URL EXTERNA do Render: precisa de SSL
-        logger.info("🔐 Conexão externa Render - com SSL require")
-        connect_args["sslmode"] = "require"
-    
+    # PostgreSQL não precisa de connect_args especiais
     poolclass = None
 
 # Criar engine do SQLAlchemy
@@ -79,24 +48,13 @@ if poolclass:
         poolclass=poolclass,
         echo=settings.database_echo
     )
-    
-    # Habilitar WAL mode para SQLite (melhora concorrência)
-    @event.listens_for(engine, "connect")
-    def set_sqlite_pragma(dbapi_conn, connection_record):
-        cursor = dbapi_conn.cursor()
-        cursor.execute("PRAGMA journal_mode=WAL")
-        cursor.execute("PRAGMA synchronous=NORMAL")
-        cursor.execute("PRAGMA cache_size=-64000")  # 64MB cache
-        cursor.close()
 else:
     engine = create_engine(
         DATABASE_URL,
         echo=settings.database_echo,
-        connect_args=connect_args,  # Aplicar connect_args ao PostgreSQL
         pool_pre_ping=True,  # Verificar conexão antes de usar
         pool_size=5,
-        max_overflow=10,
-        pool_recycle=3600  # Reciclar conexões a cada hora para evitar timeouts
+        max_overflow=10
     )
 
 # Criar SessionLocal
@@ -178,12 +136,12 @@ def init_database():
             
             # Sempre garantir que exista o admin padrão (email/senha conhecidos)
             # (em alguns cenários o banco já existe e só havia admin diferente)
-            admin_user = db.query(User).filter(User.email == "admin@barbershop.com").first()
+            admin_user = db.query(User).filter(User.email == "admin@barbeariadodudao.com").first()
             if not admin_user:
                 logger.info("🔄 Criando usuário admin padrão...")
                 admin_user = User(
-                    email="admin@barbershop.com",
-                    hashed_password=get_password_hash("admin123"),
+                    email="admin@barbeariadodudao.com",
+                    hashed_password=get_password_hash("dudao123"),
                     full_name="Administrador",
                     role=UserRole.ADMIN,
                     status=UserStatus.ACTIVE,
@@ -308,8 +266,8 @@ def ensure_default_barbershop(db: Session) -> int:
     if not admin_user:
         logger.info("🔄 Criando usuário admin padrão...")
         admin_user = User(
-            email="admin@barbershop.com",
-            hashed_password=get_password_hash("admin123"),
+            email="admin@barbeariadodudao.com",
+            hashed_password=get_password_hash("dudao123"),
             full_name="Administrador",
             role=UserRole.ADMIN,
             status=UserStatus.ACTIVE,

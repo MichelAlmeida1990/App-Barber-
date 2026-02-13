@@ -126,42 +126,6 @@ export default function BarberDashboard() {
     new Date(a.appointment_date).toDateString() === new Date().toDateString()
   );
 
-  // Agenda semanal - organiza agendamentos por dia da semana
-  const getWeeklyAgenda = () => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const weekDays: any = {};
-    
-    // Inicializar 7 dias da semana
-    const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'];
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(today);
-      date.setDate(date.getDate() + i);
-      const key = date.toISOString().split('T')[0];
-      weekDays[key] = {
-        date: date,
-        dayName: dayNames[date.getDay()],
-        dayNum: date.getDate(),
-        appointments: []
-      };
-    }
-    
-    // Agrupar agendamentos por dia
-    appointments.forEach((apt) => {
-      const aptDate = new Date(apt.appointment_date);
-      aptDate.setHours(0, 0, 0, 0);
-      const key = aptDate.toISOString().split('T')[0];
-      
-      if (weekDays[key]) {
-        weekDays[key].appointments.push(apt);
-      }
-    });
-    
-    return Object.values(weekDays);
-  };
-
-  const weeklyAgenda = getWeeklyAgenda();
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -316,7 +280,7 @@ export default function BarberDashboard() {
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-3xl font-bold text-gray-900 flex items-center">
                 <FireIcon className="w-8 h-8 mr-3 text-red-600" />
-                Agenda da Semana
+                Agenda de Hoje
               </h2>
               <Link
                 href="/barber/schedule"
@@ -326,67 +290,15 @@ export default function BarberDashboard() {
               </Link>
             </div>
 
-            {/* Weekly Calendar Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-8">
-              {weeklyAgenda.map((day: any, idx: number) => (
-                <div key={idx} className="group relative">
-                  <div className={`absolute -inset-0.5 bg-gradient-to-r ${day.appointments.length > 0 ? 'from-red-600 to-orange-600' : 'from-gray-400 to-gray-500'} rounded-xl blur opacity-30 group-hover:opacity-50 transition duration-300`}></div>
-                  <div className={`relative bg-white border rounded-xl p-4 shadow-sm transition-all duration-300 ${
-                    day.appointments.length > 0
-                      ? 'border-gray-300 hover:shadow-md hover:scale-105'
-                      : 'border-gray-200'
-                  }`}>
-                    {/* Day Header */}
-                    <div className="text-center mb-3 pb-3 border-b border-gray-200">
-                      <p className="text-sm font-semibold text-red-600">{day.dayName}</p>
-                      <p className="text-2xl font-bold text-gray-900">{day.dayNum}</p>
-                    </div>
-                    
-                    {/* Appointments for this day */}
-                    {day.appointments.length === 0 ? (
-                      <div className="text-center py-4">
-                        <p className="text-xs text-gray-400">Livre</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        <p className="text-xs font-semibold text-gray-600 px-2">{day.appointments.length} agendamento{day.appointments.length !== 1 ? 's' : ''}</p>
-                        {day.appointments.slice(0, 3).map((apt: any) => {
-                          const time = new Date(apt.appointment_date).toLocaleTimeString('pt-BR', { 
-                            hour: '2-digit', 
-                            minute: '2-digit' 
-                          });
-                          return (
-                            <div key={apt.id} className="bg-red-50 rounded-lg p-2 text-xs border border-red-100">
-                              <p className="font-semibold text-gray-900 truncate">{apt.client_name}</p>
-                              <p className="text-red-600">{time}</p>
-                            </div>
-                          );
-                        })}
-                        {day.appointments.length > 3 && (
-                          <p className="text-xs text-gray-500 px-2">+ {day.appointments.length - 3} mais</p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Today's Appointments Section */}
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center">
-                <ClockIcon className="w-6 h-6 mr-2 text-orange-600" />
-                Agora: Agendamentos de Hoje ({todayAppointments.length})
-              </h2>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {todayAppointments.length === 0 ? (
-                <div className="bg-white border border-gray-200 rounded-2xl p-12 text-center shadow-sm">
+                <div className="lg:col-span-2 bg-white border border-gray-200 rounded-2xl p-12 text-center shadow-sm">
                   <CalendarDaysIcon className="w-20 h-20 text-gray-300 mx-auto mb-4" />
                   <p className="text-gray-600 text-lg font-medium">Nenhum agendamento para hoje</p>
                   <p className="text-gray-400 text-sm mt-2">Aproveite para descansar ou atualizar seu perfil</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {todayAppointments.map((appointment) => (
+                todayAppointments.map((appointment) => (
                   <div key={appointment.id} className="group relative">
                     <div className="absolute -inset-0.5 bg-gradient-to-r from-red-600 via-orange-600 to-yellow-600 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
                     <div className="relative bg-white border border-gray-200 rounded-2xl p-6 hover:transform hover:scale-[1.02] hover:shadow-xl transition-all duration-300">
@@ -440,8 +352,7 @@ export default function BarberDashboard() {
                       </div>
                     </div>
                   </div>
-                ))}
-                </div>
+                ))
               )}
             </div>
           </div>

@@ -1,0 +1,16 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Lâmina superior -->
+  <path d="M12 18 L48 32 L44 36 L8 22 Z" fill="#E5E5E5" stroke="#999" stroke-width="1"/>
+  
+  <!-- Lâmina inferior -->
+  <path d="M12 46 L48 32 L44 28 L8 42 Z" fill="#E5E5E5" stroke="#999" stroke-width="1"/>
+  
+  <!-- Cabo superior -->
+  <circle cx="10" cy="20" r="6" fill="#1A1A1A" stroke="#333" stroke-width="1"/>
+  
+  <!-- Cabo inferior -->
+  <circle cx="10" cy="44" r="6" fill="#1A1A1A" stroke="#333" stroke-width="1"/>
+  
+  <!-- Pino central -->
+  <circle cx="46" cy="32" r="2" fill="#666"/>
+</svg> 

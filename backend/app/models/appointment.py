@@ -123,8 +123,8 @@ class Appointment(Base):
     
     # === RELACIONAMENTOS ===
     # barbershop = relationship("Barbershop", back_populates="appointments")
-    client = relationship("Client", back_populates="appointments", foreign_keys=[client_id])
-    barber = relationship("Barber", back_populates="appointments", foreign_keys=[barber_id])
+    # client = relationship("Client", back_populates="appointments")
+    # barber = relationship("Barber", back_populates="appointments")
     # services = relationship("Service", secondary=appointment_services, back_populates="appointments")
     commissions = relationship("Commission", back_populates="appointment", cascade="all, delete-orphan")
     

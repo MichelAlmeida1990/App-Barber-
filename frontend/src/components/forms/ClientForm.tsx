@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { generateId } from '@/lib/utils';
 
@@ -20,19 +20,6 @@ export default function ClientForm({ onSuccess, onCancel, initialData }: ClientF
     address: initialData?.address || '',
     notes: initialData?.notes || ''
   });
-
-  useEffect(() => {
-    if (initialData) {
-      setFormData({
-        name: initialData.name || '',
-        email: initialData.email || '',
-        phone: initialData.phone || '',
-        birthDate: initialData.birthDate || '',
-        address: initialData.address || '',
-        notes: initialData.notes || ''
-      });
-    }
-  }, [initialData]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -74,10 +61,10 @@ export default function ClientForm({ onSuccess, onCancel, initialData }: ClientF
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
-      <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2">
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
-          <label htmlFor="name" className="block text-xs sm:text-sm font-medium text-gray-700">
+          <label htmlFor="name" className="block text-sm font-medium text-gray-700">
             Nome *
           </label>
           <input
@@ -87,13 +74,13 @@ export default function ClientForm({ onSuccess, onCancel, initialData }: ClientF
             required
             value={formData.name}
             onChange={handleInputChange}
-            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-xs sm:text-sm shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
             placeholder="Nome completo"
           />
         </div>
 
         <div>
-          <label htmlFor="phone" className="block text-xs sm:text-sm font-medium text-gray-700">
+          <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
             Telefone *
           </label>
           <input
@@ -103,13 +90,13 @@ export default function ClientForm({ onSuccess, onCancel, initialData }: ClientF
             required
             value={formData.phone}
             onChange={handleInputChange}
-            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-xs sm:text-sm shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
             placeholder="(11) 99999-9999"
           />
         </div>
 
         <div>
-          <label htmlFor="email" className="block text-xs sm:text-sm font-medium text-gray-700">
+          <label htmlFor="email" className="block text-sm font-medium text-gray-700">
             Email
           </label>
           <input
@@ -118,13 +105,13 @@ export default function ClientForm({ onSuccess, onCancel, initialData }: ClientF
             id="email"
             value={formData.email}
             onChange={handleInputChange}
-            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-xs sm:text-sm shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
             placeholder="email@exemplo.com"
           />
         </div>
 
         <div>
-          <label htmlFor="birthDate" className="block text-xs sm:text-sm font-medium text-gray-700">
+          <label htmlFor="birthDate" className="block text-sm font-medium text-gray-700">
             Data de Nascimento
           </label>
           <input
@@ -133,13 +120,13 @@ export default function ClientForm({ onSuccess, onCancel, initialData }: ClientF
             id="birthDate"
             value={formData.birthDate}
             onChange={handleInputChange}
-            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-xs sm:text-sm shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
           />
         </div>
       </div>
 
       <div>
-        <label htmlFor="address" className="block text-xs sm:text-sm font-medium text-gray-700">
+        <label htmlFor="address" className="block text-sm font-medium text-gray-700">
           Endereço
         </label>
         <input
@@ -148,13 +135,13 @@ export default function ClientForm({ onSuccess, onCancel, initialData }: ClientF
           id="address"
           value={formData.address}
           onChange={handleInputChange}
-          className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-xs sm:text-sm shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+          className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
           placeholder="Endereço completo"
         />
       </div>
 
       <div>
-        <label htmlFor="notes" className="block text-xs sm:text-sm font-medium text-gray-700">
+        <label htmlFor="notes" className="block text-sm font-medium text-gray-700">
           Observações
         </label>
         <textarea
@@ -163,25 +150,25 @@ export default function ClientForm({ onSuccess, onCancel, initialData }: ClientF
           rows={3}
           value={formData.notes}
           onChange={handleInputChange}
-          className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-xs sm:text-sm shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+          className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
           placeholder="Preferências, observações especiais..."
         />
       </div>
 
-      <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-3 sm:pt-4 border-t border-gray-200">
+      <div className="flex justify-end space-x-3 pt-4">
         <button
           type="button"
           onClick={onCancel}
-          className="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-md shadow-sm text-xs sm:text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
         >
           Cancelar
         </button>
         <button
           type="submit"
           disabled={loading}
-          className="w-full sm:w-auto px-4 py-2 border border-transparent rounded-md shadow-sm text-xs sm:text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {loading ? (initialData ? 'Salvando...' : 'Criando...') : (initialData ? 'Salvar Alterações' : 'Criar Cliente')}
+          {loading ? 'Criando...' : 'Criar Cliente'}
         </button>
       </div>
     </form>

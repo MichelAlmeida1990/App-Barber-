@@ -3,235 +3,246 @@
 import { useEffect, useMemo, useState } from 'react';
 import AdminLayout from '@/components/AdminLayout';
 import toast from 'react-hot-toast';
-import { CalendarIcon, MagnifyingGlassIcon, TrashIcon, PencilIcon } from '@heroicons/react/24/outline';
-import { useRouter } from 'next/navigation';
+import { appointmentsAPI } from '@/lib/api';
+import { CalendarIcon, MagnifyingGlassIcon, PencilIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import Modal from '@/components/Modal';
 import AppointmentForm from '@/components/forms/AppointmentForm';
+import { useRouter } from 'next/navigation';
+
+type AppointmentStatus = 'agendado' | 'concluido' | 'cancelado';
 
 type Appointment = {
-  id: number;
-  client_name: string;
-  barber_name: string;
-  services: Array<{ name: string; price: number }>;
-  appointment_date: string;
-  status: string;
-  total_price: number;
+  id: string;
+  cliente: string;
+  barbeiro: string;
+  servico: string;
+  data: string; // YYYY-MM-DD
+  hora: string; // HH:mm
+  status: AppointmentStatus;
 };
+
+type AppointmentFormResult = {
+  id: string;
+  clientName: string;
+  barberName: string;
+  service: string;
+  date: string;
+  time: string;
+  clientId?: string;
+  barberId?: string;
+  serviceId?: string;
+  notes?: string;
+};
+
+const mockAppointments: Appointment[] = [
+  { id: '1', cliente: 'João Silva', barbeiro: 'Carlos Santos', servico: 'Corte Masculino', data: '2025-01-11', hora: '10:00', status: 'agendado' },
+  { id: '2', cliente: 'Maria Souza', barbeiro: 'André Lima', servico: 'Corte + Barba', data: '2025-01-11', hora: '11:00', status: 'agendado' },
+  { id: '3', cliente: 'Pedro Oliveira', barbeiro: 'Roberto Costa', servico: 'Barba Completa', data: '2025-01-10', hora: '16:30', status: 'concluido' },
+];
+
+const ADMIN_APPOINTMENTS_LS_KEY = 'admin_appointments_v1';
 
 export default function AdminAppointmentsPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('todos');
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [statusFilter, setStatusFilter] = useState<'todos' | AppointmentStatus>('todos');
+  const [hydrated, setHydrated] = useState(false);
+  const [items, setItems] = useState<Appointment[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [editingAppointment, setEditingAppointment] = useState<(Appointment & { clientId?: string; barberId?: string; serviceId?: string; notes?: string }) | null>(null);
+
+  // Persistir agendamentos no localStorage para não "sumirem" com Fast Refresh
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(ADMIN_APPOINTMENTS_LS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as Appointment[];
+        if (Array.isArray(parsed) && parsed.length > 0) setItems(parsed);
+        else setItems(mockAppointments);
+      } else {
+        setItems(mockAppointments);
+      }
+    } catch (e) {
+      console.warn('Falha ao ler agendamentos do localStorage:', e);
+      setItems(mockAppointments);
+    } finally {
+      setHydrated(true);
+    }
+  }, []);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      router.push('/admin/login');
-      return;
+    if (!hydrated) return;
+    try {
+      localStorage.setItem(ADMIN_APPOINTMENTS_LS_KEY, JSON.stringify(items));
+    } catch (e) {
+      console.warn('Falha ao salvar agendamentos no localStorage:', e);
     }
-    loadAppointments();
-  }, [router]);
+  }, [hydrated, items]);
 
-  const loadAppointments = async () => {
+  const filtered = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    return items.filter((a) => {
+      const matchesSearch =
+        !term ||
+        a.cliente.toLowerCase().includes(term) ||
+        a.barbeiro.toLowerCase().includes(term) ||
+        a.servico.toLowerCase().includes(term);
+      const matchesStatus = statusFilter === 'todos' || a.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [items, search, statusFilter]);
+
+  const testAPI = async () => {
     setLoading(true);
     try {
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      const token = localStorage.getItem('token');
-
-      const response = await fetch(`${API_BASE_URL}/api/v1/appointments/`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        mode: 'cors',
-        cache: 'no-cache'
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setAppointments(Array.isArray(data) ? data : []);
-      } else {
-        toast.error('Erro ao carregar agendamentos');
-      }
-    } catch (error) {
-      console.error('Erro:', error);
-      toast.error('Erro ao conectar com o servidor');
+      const res = await appointmentsAPI.test();
+      console.log('Appointments API Response:', res.data);
+      toast.success('✅ API de agendamentos funcionando!');
+    } catch (e) {
+      console.error('Erro na API de agendamentos:', e);
+      toast.error('❌ Erro ao conectar com API de agendamentos');
     } finally {
       setLoading(false);
     }
   };
 
-  const filtered = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    return appointments.filter((a) => {
-      const matchesSearch =
-        !term ||
-        a.client_name.toLowerCase().includes(term) ||
-        a.barber_name.toLowerCase().includes(term) ||
-        a.services.some(s => s.name.toLowerCase().includes(term));
-      const matchesStatus = statusFilter === 'todos' || a.status === statusFilter;
-      return matchesSearch && matchesStatus;
+  const handleCreateAppointment = (result: AppointmentFormResult) => {
+    const newAppointment: (Appointment & { clientId?: string; barberId?: string; serviceId?: string; notes?: string }) = {
+      id: result.id,
+      cliente: result.clientName,
+      barbeiro: result.barberName,
+      servico: result.service,
+      data: result.date,
+      hora: result.time,
+      status: 'agendado',
+      clientId: result.clientId,
+      barberId: result.barberId,
+      serviceId: result.serviceId,
+      notes: result.notes,
+    };
+    setItems((prev) => {
+      const exists = prev.some((a) => a.id === newAppointment.id);
+      return exists ? prev.map((a) => (a.id === newAppointment.id ? { ...a, ...newAppointment } : a)) : [newAppointment, ...prev];
     });
-  }, [appointments, search, statusFilter]);
-
-  const handleDelete = async (id: number) => {
-    if (!confirm('Deseja remover este agendamento?')) return;
-
-    try {
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
-      const token = localStorage.getItem('token');
-
-      const response = await fetch(`${API_BASE_URL}/api/v1/appointments/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
-        toast.success('Agendamento removido!');
-        loadAppointments();
-      } else {
-        toast.error('Erro ao remover agendamento');
-      }
-    } catch (error) {
-      console.error('Erro:', error);
-      toast.error('Erro ao remover agendamento');
-    }
-  };
-
-  const openDetails = (appointment: Appointment) => {
-    setSelectedAppointment(appointment);
-    setIsDetailsOpen(true);
-  };
-
-  const handleDeleteAppointment = (id: number) => {
-    handleDelete(id);
-  };
-
-  const handleCreateAppointment = (data: any) => {
-    // Placeholder for appointment creation logic
-    loadAppointments();
     setIsModalOpen(false);
+    setEditingAppointment(null);
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'confirmed': return 'bg-blue-900/30 text-blue-300 border-blue-700';
-      case 'completed': return 'bg-green-900/30 text-green-300 border-green-700';
-      case 'cancelled': return 'bg-red-900/30 text-red-300 border-red-700';
-      default: return 'bg-yellow-900/30 text-yellow-300 border-yellow-700';
-    }
+  const handleDeleteAppointment = (id: string) => {
+    if (!window.confirm('Tem certeza que deseja excluir este agendamento?')) return;
+    setItems((prev) => prev.filter((a) => a.id !== id));
+    toast.success('Agendamento excluído com sucesso!');
   };
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'pending': return 'Pendente';
-      case 'confirmed': return 'Confirmado';
-      case 'completed': return 'Concluído';
-      case 'cancelled': return 'Cancelado';
-      default: return status;
-    }
+  const openDetails = (a: Appointment) => {
+    setSelectedAppointment(a);
+    setIsDetailsOpen(true);
   };
 
   return (
     <AdminLayout>
-      {/* Header */}
-      <div className="pb-6 mb-8 bg-gradient-to-r from-gray-800 via-gray-900 to-gray-800 rounded-xl p-6 shadow-lg border border-gray-700">
-        <div className="flex items-center gap-4">
-          <div className="bg-gradient-to-br from-blue-600 to-blue-700 p-3 rounded-lg">
-            <CalendarIcon className="h-8 w-8 text-white" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold text-white">Agendamentos</h1>
-            <p className="text-gray-300 text-sm mt-1">Gerencie e acompanhe todos os agendamentos</p>
-          </div>
+      <div className="pb-5 border-b border-gray-200 sm:flex sm:items-center sm:justify-between mb-6">
+        <div>
+          <h1 className="text-3xl font-bold leading-6 text-gray-900">Agendamentos</h1>
+          <p className="mt-2 max-w-4xl text-sm text-gray-500">Gerencie e acompanhe os agendamentos da barbearia</p>
+        </div>
+        <div className="mt-3 sm:mt-0 sm:ml-4">
+          <button
+            type="button"
+            onClick={() => setIsModalOpen(true)}
+            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 mr-3"
+          >
+            <PlusIcon className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />
+            Agendar
+          </button>
+          <button
+            onClick={testAPI}
+            disabled={loading}
+            className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+          >
+            {loading ? 'Testando...' : 'Testar API'}
+          </button>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-gray-800 border border-gray-700 rounded-lg p-6 mb-8 shadow-lg">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="bg-white shadow rounded-lg p-4 mb-6">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div className="relative">
             <MagnifyingGlassIcon className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar por cliente, barbeiro ou serviço"
-              className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md text-sm"
             />
           </div>
           <div>
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full py-2 px-4 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              onChange={(e) => setStatusFilter(e.target.value as 'todos' | AppointmentStatus)}
+              className="w-full py-2 px-3 border border-gray-300 rounded-md text-sm"
             >
               <option value="todos">Todos os status</option>
-              <option value="pending">Pendente</option>
-              <option value="confirmed">Confirmado</option>
-              <option value="completed">Concluído</option>
-              <option value="cancelled">Cancelado</option>
+              <option value="agendado">Agendado</option>
+              <option value="concluido">Concluído</option>
+              <option value="cancelado">Cancelado</option>
             </select>
           </div>
-          <div className="flex items-center text-sm text-gray-400 px-4 py-2 bg-gray-700 rounded-lg border border-gray-600">
-            <CalendarIcon className="h-5 w-5 mr-2" />
-            <span>Total: <span className="ml-1 font-semibold text-white">{filtered.length}</span></span>
+          <div className="flex items-center text-sm text-gray-600">
+            <CalendarIcon className="h-5 w-5 mr-2 text-gray-400" />
+            Total: <span className="ml-1 font-semibold text-gray-900">{filtered.length}</span>
           </div>
         </div>
       </div>
 
-      <div className="bg-gray-800 border border-gray-700 rounded-lg overflow-hidden">
+      <div className="bg-white shadow rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-700">
-            <thead className="bg-gray-750 border-b border-gray-700">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Cliente</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Barbeiro</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Serviço</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Data/Hora</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">Ações</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Barbeiro</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Serviço</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quando</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-700">
+            <tbody className="bg-white divide-y divide-gray-200">
               {filtered.map((a) => (
-                <tr key={a.id} className="hover:bg-gray-750 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
+                <tr key={a.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     <button
                       type="button"
                       onClick={() => openDetails(a)}
-                      className="text-blue-400 hover:text-blue-300 underline-offset-2 hover:underline"
+                      className="text-indigo-700 hover:underline"
                       title="Ver detalhes do agendamento"
                     >
-                      {a.client_name || 'N/A'}
+                      {a.cliente}
                     </button>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{a.barber_name || 'N/A'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                    {a.services && a.services.length > 0 ? a.services.map(s => s.name).join(', ') : 'N/A'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                    {a.appointment_date ? new Date(a.appointment_date).toLocaleString('pt-BR') : 'N/A'}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{a.barbeiro}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{a.servico}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                    {a.data} {a.hora}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${
-                      a.status === 'completed'
-                        ? 'bg-green-900/30 text-green-400 border border-green-700'
-                        : a.status === 'cancelled'
-                          ? 'bg-red-900/30 text-red-400 border border-red-700'
-                          : a.status === 'confirmed'
-                            ? 'bg-blue-900/30 text-blue-400 border border-blue-700'
-                            : 'bg-yellow-900/30 text-yellow-400 border border-yellow-700'
-                    }`}>
-                      {a.status === 'completed' ? 'Concluído' : a.status === 'cancelled' ? 'Cancelado' : a.status === 'confirmed' ? 'Confirmado' : 'Pendente'}
-                    </span>
+                    <button
+                      type="button"
+                      onClick={() => openDetails(a)}
+                      className={`inline-flex px-2 py-1 rounded-full text-xs font-semibold underline-offset-2 hover:underline ${
+                        a.status === 'concluido'
+                          ? 'bg-green-100 text-green-800'
+                          : a.status === 'cancelado'
+                            ? 'bg-red-100 text-red-800'
+                            : 'bg-yellow-100 text-yellow-800'
+                      }`}
+                      title="Ver detalhes do agendamento"
+                    >
+                      {a.status}
+                    </button>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-right">
                     <div className="inline-flex items-center gap-2">
@@ -241,7 +252,7 @@ export default function AdminAppointmentsPage() {
                           setEditingAppointment(a as any);
                           setIsModalOpen(true);
                         }}
-                        className="text-blue-400 hover:text-blue-300 transition-colors"
+                        className="text-indigo-600 hover:text-indigo-900"
                         title="Editar"
                       >
                         <PencilIcon className="h-5 w-5" />
@@ -249,7 +260,7 @@ export default function AdminAppointmentsPage() {
                       <button
                         type="button"
                         onClick={() => handleDeleteAppointment(a.id)}
-                        className="text-red-400 hover:text-red-300 transition-colors"
+                        className="text-red-600 hover:text-red-900"
                         title="Excluir"
                       >
                         <TrashIcon className="h-5 w-5" />
@@ -260,7 +271,7 @@ export default function AdminAppointmentsPage() {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-10 text-center text-sm text-gray-400">
+                  <td colSpan={6} className="px-6 py-10 text-center text-sm text-gray-500">
                     Nenhum agendamento encontrado.
                   </td>
                 </tr>
@@ -276,16 +287,16 @@ export default function AdminAppointmentsPage() {
             editingAppointment
               ? {
                   id: editingAppointment.id,
-                  clientId: (editingAppointment as any).client_id,
-                  barberId: (editingAppointment as any).barber_id,
-                  serviceId: (editingAppointment as any).service_id,
-                  date: editingAppointment.appointment_date,
-                  time: editingAppointment.appointment_date,
-                  notes: (editingAppointment as any).notes || '',
+                  clientId: (editingAppointment as any).clientId,
+                  barberId: (editingAppointment as any).barberId,
+                  serviceId: (editingAppointment as any).serviceId,
+                  date: editingAppointment.data,
+                  time: editingAppointment.hora,
+                  notes: (editingAppointment as any).notes,
                 }
               : undefined
           }
-          onSuccess={(a) => handleCreateAppointment(a as any)}
+          onSuccess={(a) => handleCreateAppointment(a as AppointmentFormResult)}
           onCancel={() => {
             setIsModalOpen(false);
             setEditingAppointment(null);
@@ -306,45 +317,39 @@ export default function AdminAppointmentsPage() {
         {selectedAppointment ? (
           <div className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="rounded-md border border-gray-700 bg-gray-750 p-3">
-                <p className="text-xs text-gray-400 uppercase tracking-wide">Cliente</p>
-                <p className="mt-1 text-sm font-semibold text-white">{selectedAppointment.client_name || 'N/A'}</p>
+              <div className="rounded-md border border-gray-200 p-3">
+                <p className="text-xs text-gray-500 uppercase tracking-wide">Cliente</p>
+                <p className="mt-1 text-sm font-semibold text-gray-900">{selectedAppointment.cliente}</p>
               </div>
-              <div className="rounded-md border border-gray-700 bg-gray-750 p-3">
-                <p className="text-xs text-gray-400 uppercase tracking-wide">Barbeiro</p>
-                <p className="mt-1 text-sm font-semibold text-white">{selectedAppointment.barber_name || 'N/A'}</p>
+              <div className="rounded-md border border-gray-200 p-3">
+                <p className="text-xs text-gray-500 uppercase tracking-wide">Barbeiro</p>
+                <p className="mt-1 text-sm font-semibold text-gray-900">{selectedAppointment.barbeiro}</p>
               </div>
-              <div className="rounded-md border border-gray-700 bg-gray-750 p-3">
-                <p className="text-xs text-gray-400 uppercase tracking-wide">Serviço</p>
-                <p className="mt-1 text-sm font-semibold text-white">
-                  {selectedAppointment.services && selectedAppointment.services.length > 0 
-                    ? selectedAppointment.services.map(s => s.name).join(', ') 
-                    : 'N/A'}
-                </p>
+              <div className="rounded-md border border-gray-200 p-3">
+                <p className="text-xs text-gray-500 uppercase tracking-wide">Serviço</p>
+                <p className="mt-1 text-sm font-semibold text-gray-900">{selectedAppointment.servico}</p>
               </div>
-              <div className="rounded-md border border-gray-700 bg-gray-750 p-3">
-                <p className="text-xs text-gray-400 uppercase tracking-wide">Data/Hora</p>
-                <p className="mt-1 text-sm font-semibold text-white">
-                  {selectedAppointment.appointment_date ? new Date(selectedAppointment.appointment_date).toLocaleString('pt-BR') : 'N/A'}
+              <div className="rounded-md border border-gray-200 p-3">
+                <p className="text-xs text-gray-500 uppercase tracking-wide">Data/Hora</p>
+                <p className="mt-1 text-sm font-semibold text-gray-900">
+                  {selectedAppointment.data} {selectedAppointment.hora}
                 </p>
               </div>
             </div>
 
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-gray-400 uppercase tracking-wide">Status</p>
+                <p className="text-xs text-gray-500 uppercase tracking-wide">Status</p>
                 <span
-                  className={`mt-1 inline-flex px-3 py-1 rounded-full text-xs font-semibold ${
-                    selectedAppointment.status === 'completed'
-                      ? 'bg-green-900/30 text-green-400 border border-green-700'
-                      : selectedAppointment.status === 'cancelled'
-                        ? 'bg-red-900/30 text-red-400 border border-red-700'
-                        : selectedAppointment.status === 'confirmed'
-                          ? 'bg-blue-900/30 text-blue-400 border border-blue-700'
-                          : 'bg-yellow-900/30 text-yellow-400 border border-yellow-700'
+                  className={`mt-1 inline-flex px-2 py-1 rounded-full text-xs font-semibold ${
+                    selectedAppointment.status === 'concluido'
+                      ? 'bg-green-100 text-green-800'
+                      : selectedAppointment.status === 'cancelado'
+                        ? 'bg-red-100 text-red-800'
+                        : 'bg-yellow-100 text-yellow-800'
                   }`}
                 >
-                  {selectedAppointment.status === 'completed' ? 'Concluído' : selectedAppointment.status === 'cancelled' ? 'Cancelado' : selectedAppointment.status === 'confirmed' ? 'Confirmado' : 'Pendente'}
+                  {selectedAppointment.status}
                 </span>
               </div>
               <button
@@ -353,14 +358,14 @@ export default function AdminAppointmentsPage() {
                   setIsDetailsOpen(false);
                   setSelectedAppointment(null);
                 }}
-                className="inline-flex items-center px-4 py-2 rounded-md border border-gray-600 text-gray-300 text-sm font-medium hover:bg-gray-700 transition-colors"
+                className="inline-flex items-center px-4 py-2 rounded-md border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50"
               >
                 Fechar
               </button>
             </div>
           </div>
         ) : (
-          <div className="text-sm text-gray-400">Nenhum agendamento selecionado.</div>
+          <div className="text-sm text-gray-500">Nenhum agendamento selecionado.</div>
         )}
       </Modal>
     </AdminLayout>

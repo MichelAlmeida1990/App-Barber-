@@ -109,3 +109,5 @@ export default function SalesEvolutionChart({ data, period }: SalesEvolutionChar
 }
 
 
+
+

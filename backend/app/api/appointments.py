@@ -234,15 +234,9 @@ async def list_appointments(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
-    """Listar agendamentos com filtros - OTIMIZADO com joinedload"""
+    """Listar agendamentos com filtros"""
     
-    from sqlalchemy.orm import joinedload
-    
-    # Query otimizada com joins para evitar N+1
-    query = db.query(Appointment).options(
-        joinedload(Appointment.barber),
-        joinedload(Appointment.client)
-    )
+    query = db.query(Appointment)
     
     # Filtros baseados no role do usuário
     if current_user.is_client:
@@ -268,24 +262,27 @@ async def list_appointments(
     if date_to:
         query = query.filter(Appointment.appointment_date <= date_to)
     
-    # Paginação e execução - dados já vêm com relações carregadas
+    # Paginação
     appointments = query.offset(skip).limit(limit).all()
     
-    # Montar response - sem queries adicionais!
+    # Montar response
     result = []
     for appointment in appointments:
+        barber = db.query(Barber).filter(Barber.id == appointment.barber_id).first()
+        client = db.query(Client).filter(Client.id == appointment.client_id).first()
+        
         result.append(AppointmentResponse(
             id=appointment.id,
             client_id=appointment.client_id,
-            client_name=appointment.client.name if appointment.client else "Unknown",
+            client_name=client.name if client else "Unknown",
             barber_id=appointment.barber_id,
-            barber_name=appointment.barber.professional_name if appointment.barber else "Unknown",
+            barber_name=barber.professional_name if barber else "Unknown",
             services=[],  # TODO: Implementar relacionamento
             appointment_date=appointment.appointment_date,
             status=appointment.status.value,
-            total_price=float(appointment.final_amount) if appointment.final_amount else 0.0,
-            total_duration=appointment.duration_minutes,
-            notes=appointment.client_notes or "",
+            total_price=appointment.total_price,
+            total_duration=appointment.total_duration,
+            notes=appointment.notes,
             created_at=appointment.created_at
         ))
     
@@ -313,17 +310,39 @@ async def get_availability(
     current_time = datetime.combine(appointment_date, time(8, 0))
     end_time = datetime.combine(appointment_date, time(18, 0))
     
+    # Buscar agendamentos do barbeiro para esta data (excluindo pausados)
+    appointments_on_date = db.query(Appointment).filter(
+        and_(
+            Appointment.barber_id == barber_id,
+            func.date(Appointment.appointment_date) == appointment_date,
+            Appointment.status != AppointmentStatus.PAUSED,  # Ignorar agendamentos pausados
+            Appointment.status != AppointmentStatus.CANCELLED,
+            Appointment.status != AppointmentStatus.COMPLETED,
+            Appointment.deleted_at.is_(None)
+        )
+    ).all()
+    
     while current_time < end_time:
         slot_end = current_time + timedelta(minutes=30)
         
-        # Por enquanto, todos os horários estão disponíveis
-        # TODO: Implementar verificação real de disponibilidade
+        # Verificar se há conflito com algum agendamento
         is_available = True
+        conflicting_appointment = None
+        
+        for apt in appointments_on_date:
+            apt_start = apt.start_time
+            apt_end = apt.end_time
+            
+            # Verificar sobreposição de horários
+            if not (slot_end <= apt_start or current_time >= apt_end):
+                is_available = False
+                conflicting_appointment = apt
+                break
         
         time_slots.append(TimeSlot(
             time=current_time.strftime("%H:%M"),
             available=is_available,
-            appointment_id=None
+            appointment_id=conflicting_appointment.id if conflicting_appointment else None
         ))
         
         current_time = slot_end
@@ -1018,357 +1037,103 @@ async def update_appointment_status_simple(
         }
     }
 
-# === NOTIFICAÇÕES E CONFIRMAÇÃO ===
-
-@router.get("/barber-notifications/pending")
-async def get_pending_notifications(
-    current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
-):
-    """Obter agendamentos pendentes (não confirmados) para o barbeiro"""
-    
-    # Verificar se é barbeiro
-    if current_user.role != UserRole.BARBER:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Apenas barbeiros podem acessar notificações"
-        )
-    
-    try:
-        # Buscar barber_id do usuário logado
-        barber = db.query(Barber).filter(Barber.user_id == current_user.id).first()
-        
-        if not barber:
-            return {
-                "pending_count": 0,
-                "notifications": [],
-                "last_check": datetime.utcnow().isoformat()
-            }
-        
-        # Buscar agendamentos PENDENTES (não confirmados)
-        pending_appointments = db.query(Appointment).filter(
-            and_(
-                Appointment.barber_id == barber.id,
-                Appointment.status == AppointmentStatus.PENDING,
-                Appointment.confirmed_at.is_(None)  # Não confirmado ainda
-            )
-        ).order_by(Appointment.appointment_date.asc()).all()
-        
-        # Montar notificações
-        notifications = []
-        for appointment in pending_appointments:
-            client = db.query(Client).filter(Client.id == appointment.client_id).first()
-            
-            # Calcular tempo até agendamento
-            time_until = appointment.appointment_date - datetime.now()
-            hours_until = int(time_until.total_seconds() / 3600)
-            
-            notifications.append({
-                "id": appointment.id,
-                "appointment_code": appointment.appointment_number,
-                "client_name": client.name if client else "Cliente Desconhecido",
-                "client_phone": client.phone if client else "",
-                "appointment_date": appointment.appointment_date.isoformat(),
-                "hours_until": hours_until,
-                "services": appointment.client_notes or "N/A",
-                "created_at": appointment.created_at.isoformat() if appointment.created_at else "",
-                "is_urgent": hours_until < 2  # Vermelho se menos de 2 horas
-            })
-        
-        return {
-            "pending_count": len(notifications),
-            "notifications": notifications,
-            "last_check": datetime.utcnow().isoformat()
-        }
-        
-    except Exception as e:
-        print(f"Erro ao buscar notificações: {e}")
-        return {
-            "pending_count": 0,
-            "notifications": [],
-            "error": str(e)
-        }
-
-@router.post("/{appointment_id}/confirm")
-async def confirm_appointment(
+@router.post("/{appointment_id}/pause")
+async def pause_appointment(
     appointment_id: int,
+    reason: Optional[str] = None,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
-    """Barbeiro confirma um agendamento (sai da lista de pendentes)"""
+    """Pausar um agendamento em andamento (libera a agenda do barbeiro)"""
     
-    # Verificar se é barbeiro
-    if current_user.role != UserRole.BARBER:
+    appointment = db.query(Appointment).filter(Appointment.id == appointment_id).first()
+    if not appointment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Agendamento não encontrado"
+        )
+    
+    # Verificar permissões
+    can_pause = False
+    if current_user.is_barber:
+        barber = db.query(Barber).filter(Barber.user_id == current_user.id).first()
+        can_pause = barber and appointment.barber_id == barber.id
+    elif current_user.can_manage_barbershop:
+        can_pause = True
+    
+    if not can_pause:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Apenas barbeiros podem confirmar agendamentos"
+            detail="Não autorizado a pausar este agendamento"
         )
     
     try:
-        # Buscar agendamento
-        appointment = db.query(Appointment).filter(Appointment.id == appointment_id).first()
-        if not appointment:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Agendamento não encontrado"
-            )
-        
-        # Verificar se pertence ao barbeiro logado
-        barber = db.query(Barber).filter(Barber.user_id == current_user.id).first()
-        if not barber or appointment.barber_id != barber.id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Você só pode confirmar seus próprios agendamentos"
-            )
-        
-        # Confirmar agendamento
-        appointment.status = AppointmentStatus.CONFIRMED
-        appointment.confirmed_at = datetime.utcnow()
-        
-        # Adicionar evento de confirmação na timeline
-        import json
-        timeline = []
-        if appointment.timeline_events:
-            try:
-                timeline = json.loads(appointment.timeline_events)
-            except:
-                timeline = []
-        
-        timeline.append({
-            "event": "CONFIRMED",
-            "timestamp": datetime.utcnow().isoformat(),
-            "actor": "BARBER",
-            "barber_name": current_user.full_name
-        })
-        
-        appointment.timeline_events = json.dumps(timeline)
-        
+        appointment.pause(reason)
         db.commit()
         db.refresh(appointment)
         
-        # Buscar dados para resposta
-        client = db.query(Client).filter(Client.id == appointment.client_id).first()
-        
         return {
             "success": True,
-            "message": "Agendamento confirmado com sucesso!",
+            "message": "Agendamento pausado. Agenda liberada para outros atendimentos.",
             "appointment": {
                 "id": appointment.id,
-                "appointment_code": appointment.appointment_number,
                 "status": appointment.status.value,
-                "client_name": client.name if client else "Cliente",
-                "appointment_date": appointment.appointment_date.isoformat(),
-                "confirmed_at": appointment.confirmed_at.isoformat() if appointment.confirmed_at else None
+                "paused_at": appointment.paused_at.isoformat() if appointment.paused_at else None,
+                "pause_reason": appointment.pause_reason
             }
         }
-        
-    except HTTPException as e:
-        raise e
-    except Exception as e:
-        print(f"Erro ao confirmar agendamento: {e}")
+    except ValueError as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao confirmar agendamento: {str(e)}"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
         )
 
-@router.get("/{appointment_id}/timeline")
-async def get_appointment_timeline(
+@router.post("/{appointment_id}/resume")
+async def resume_appointment(
     appointment_id: int,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
-    """Obter timeline/histórico de um agendamento"""
+    """Retomar um agendamento pausado"""
     
-    try:
-        appointment = db.query(Appointment).filter(Appointment.id == appointment_id).first()
-        if not appointment:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Agendamento não encontrado"
-            )
-        
-        # Montar timeline padrão se não existir
-        import json
-        timeline = []
-        if appointment.timeline_events:
-            try:
-                timeline = json.loads(appointment.timeline_events)
-            except:
-                timeline = []
-        
-        # Adicionar evento inicial se timeline vazia
-        if not timeline:
-            timeline.append({
-                "event": "CREATED",
-                "timestamp": appointment.created_at.isoformat() if appointment.created_at else appointment.appointment_date.isoformat(),
-                "actor": "CLIENT",
-                "description": "Cliente realizou agendamento"
-            })
-        
-        return {
-            "appointment_id": appointment.id,
-            "appointment_code": appointment.appointment_number,
-            "timeline": timeline,
-            "status": appointment.status.value,
-            "confirmed_at": appointment.confirmed_at.isoformat() if appointment.confirmed_at else None
-        }
-        
-    except Exception as e:
-        print(f"Erro ao obter timeline: {e}")
+    appointment = db.query(Appointment).filter(Appointment.id == appointment_id).first()
+    if not appointment:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao obter timeline: {str(e)}"
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Agendamento não encontrado"
         )
-
-# === LIMPEZA DE AGENDAMENTOS EXPIRADOS ===
-
-@router.post("/cleanup/expired")
-async def cleanup_expired_appointments(
-    current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
-):
-    """
-    Limpar agendamentos não confirmados que já passaram da data.
-    Pré-requisito: Usuário deve ser cliente ou admin.
-    """
+    
+    # Verificar permissões
+    can_resume = False
+    if current_user.is_barber:
+        barber = db.query(Barber).filter(Barber.user_id == current_user.id).first()
+        can_resume = barber and appointment.barber_id == barber.id
+    elif current_user.can_manage_barbershop:
+        can_resume = True
+    
+    if not can_resume:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Não autorizado a retomar este agendamento"
+        )
     
     try:
-        if current_user.role not in [UserRole.CLIENT, UserRole.ADMIN]:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Apenas clientes ou admins podem limpar agendamentos"
-            )
-        
-        now = datetime.utcnow()
-        
-        # Construir query para agendamentos expirados
-        # Critérios: PENDING ou não confirmado + data passou
-        expired_query = db.query(Appointment).filter(
-            and_(
-                Appointment.appointment_date < now,  # Data já passou
-                or_(
-                    Appointment.status == AppointmentStatus.PENDING,  # Status pending
-                    Appointment.confirmed_at.is_(None)  # Ou não foi confirmado
-                )
-            )
-        )
-        
-        # Se usuário é cliente, filtrar apenas seus agendamentos
-        if current_user.role == UserRole.CLIENT:
-            client = db.query(Client).filter(Client.user_id == current_user.id).first()
-            if client:
-                expired_query = expired_query.filter(Appointment.client_id == client.id)
-        
-        # Obter agendamentos expirados
-        expired_appointments = expired_query.all()
-        
-        deleted_count = 0
-        deleted_info = []
-        
-        for appointment in expired_appointments:
-            try:
-                client = db.query(Client).filter(Client.id == appointment.client_id).first()
-                barber = db.query(Barber).filter(Barber.id == appointment.barber_id).first()
-                
-                deleted_info.append({
-                    "id": appointment.id,
-                    "appointment_code": appointment.appointment_number,
-                    "client_name": client.name if client else "Desconhecido",
-                    "barber_name": barber.professional_name if barber else "Desconhecido",
-                    "appointment_date": appointment.appointment_date.isoformat(),
-                    "status": appointment.status.value
-                })
-                
-                # Deletar agendamento
-                db.delete(appointment)
-                deleted_count += 1
-            except Exception as e:
-                print(f"Erro ao deletar agendamento expirado ID {appointment.id}: {e}")
-                continue
-        
+        appointment.resume()
         db.commit()
+        db.refresh(appointment)
         
         return {
             "success": True,
-            "message": f"{deleted_count} agendamento(s) expirado(s) removido(s) com sucesso",
-            "deleted_count": deleted_count,
-            "deleted_appointments": deleted_info
-        }
-        
-    except HTTPException as e:
-        raise e
-    except Exception as e:
-        print(f"Erro ao limpar agendamentos expirados: {e}")
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao limpar agendamentos: {str(e)}"
-        )
-
-@router.get("/cleanup/status")
-async def check_expired_appointments(
-    current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db)
-):
-    """
-    Apenas verificar quantos agendamentos expirados existem (sem deletar).
-    """
-    
-    try:
-        if current_user.role not in [UserRole.CLIENT, UserRole.ADMIN]:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Apenas clientes ou admins podem verificar agendamentos"
-            )
-        
-        now = datetime.utcnow()
-        
-        # Construir query para agendamentos expirados
-        expired_query = db.query(Appointment).filter(
-            and_(
-                Appointment.appointment_date < now,
-                or_(
-                    Appointment.status == AppointmentStatus.PENDING,
-                    Appointment.confirmed_at.is_(None)
-                )
-            )
-        )
-        
-        # Se usuário é cliente, filtrar apenas seus agendamentos
-        if current_user.role == UserRole.CLIENT:
-            client = db.query(Client).filter(Client.user_id == current_user.id).first()
-            if client:
-                expired_query = expired_query.filter(Appointment.client_id == client.id)
-        
-        expired_appointments = expired_query.all()
-        expired_info = []
-        
-        for appointment in expired_appointments:
-            client = db.query(Client).filter(Client.id == appointment.client_id).first()
-            barber = db.query(Barber).filter(Barber.id == appointment.barber_id).first()
-            
-            # Calcular quanto tempo passou
-            time_diff = now - appointment.appointment_date
-            days_past = int(time_diff.total_seconds() / 86400)
-            
-            expired_info.append({
+            "message": "Agendamento retomado.",
+            "appointment": {
                 "id": appointment.id,
-                "appointment_code": appointment.appointment_number,
-                "client_name": client.name if client else "Desconhecido",
-                "barber_name": barber.professional_name if barber else "Desconhecido",
-                "appointment_date": appointment.appointment_date.isoformat(),
-                "days_past": days_past,
-                "status": appointment.status.value
-            })
-        
-        return {
-            "expired_count": len(expired_info),
-            "expired_appointments": expired_info
+                "status": appointment.status.value,
+                "resumed_at": appointment.resumed_at.isoformat() if appointment.resumed_at else None,
+                "pause_duration_minutes": appointment.pause_duration_minutes
+            }
         }
-        
-    except Exception as e:
-        print(f"Erro ao verificar agendamentos expirados: {e}")
+    except ValueError as e:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Erro ao verificar agendamentos: {str(e)}"
-        ) 
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )

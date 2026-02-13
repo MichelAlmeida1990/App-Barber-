@@ -13,8 +13,6 @@ from app.core.database import get_db
 from app.core.config import settings
 from app.models.user import User, UserRole, UserStatus
 from app.models.client import Client, ClientStatus
-from app.models.barber import Barber
-from app.models.service import Service
 
 router = APIRouter()
 
@@ -779,70 +777,14 @@ async def create_test_data(db: Session = Depends(get_db)):
         }
     ]
     
-    # Garantir que barbearia padrão existe
-    from app.core.database import ensure_default_barbershop
-    barbershop_id = ensure_default_barbershop(db)
-    
     created_users = []
     skipped_users = []
-    created_barbers = []
-    created_services = []
     
     for user_data in test_users:
         # Verificar se já existe
         existing_user = get_user_by_email(db, user_data["email"])
         if existing_user:
             skipped_users.append(user_data["email"])
-            
-            # Criar barbeiro se usuário é barbeiro e não tem registro na tabela barbers
-            if user_data["role"] == UserRole.BARBER:
-                existing_barber = db.query(Barber).filter(Barber.user_id == existing_user.id).first()
-                if not existing_barber:
-                    barber_data = {
-                        "carlos@barbearia.com": {
-                            "specialties": ["Corte Masculino", "Barba Completa", "Degradê"],
-                            "experience_years": 8,
-                            "bio": "Especialista em cortes masculinos clássicos e modernos",
-                            "commission_rate": 0.6
-                        },
-                        "andre@barbearia.com": {
-                            "specialties": ["Corte Feminino", "Luzes", "Escova Progressiva"],
-                            "experience_years": 12,
-                            "bio": "Expert em cortes femininos e técnicas de coloração",
-                            "commission_rate": 0.65
-                        },
-                        "roberto@barbearia.com": {
-                            "specialties": ["Corte + Barba", "Relaxamento", "Tratamentos"],
-                            "experience_years": 15,
-                            "bio": "Veterano com experiência em todos os tipos de serviços",
-                            "commission_rate": 0.7
-                        }
-                    }
-                    
-                    info = barber_data.get(user_data["email"], {})
-                    db_barber = Barber(
-                        barbershop_id=barbershop_id,
-                        user_id=existing_user.id,
-                        professional_name=user_data["full_name"],
-                        bio=info.get("bio", ""),
-                        experience_years=info.get("experience_years", 5),
-                        specialties=info.get("specialties", []),
-                        is_active=True,
-                        accepts_appointments=True,
-                        commission_rate=info.get("commission_rate", 0.6),
-                        phone=user_data["phone"],
-                        whatsapp=user_data["phone"],
-                        working_hours={
-                            "0": {"start": "08:00", "end": "18:00"},
-                            "1": {"start": "08:00", "end": "18:00"},
-                            "2": {"start": "08:00", "end": "18:00"},
-                            "3": {"start": "08:00", "end": "18:00"},
-                            "4": {"start": "08:00", "end": "18:00"},
-                            "5": {"start": "08:00", "end": "16:00"}
-                        }
-                    )
-                    db.add(db_barber)
-                    created_barbers.append(user_data["full_name"])
             continue
         
         # Criar usuário
@@ -858,137 +800,11 @@ async def create_test_data(db: Session = Depends(get_db)):
         )
         
         db.add(db_user)
-        db.flush()  # Para obter o ID do usuário
-        
         created_users.append({
             "email": user_data["email"],
             "name": user_data["full_name"],
             "role": user_data["role"].value
         })
-        
-        # Se for barbeiro, criar registro na tabela barbers
-        if user_data["role"] == UserRole.BARBER:
-            barber_data = {
-                "carlos@barbearia.com": {
-                    "specialties": ["Corte Masculino", "Barba Completa", "Degradê"],
-                    "experience_years": 8,
-                    "bio": "Especialista em cortes masculinos clássicos e modernos",
-                    "commission_rate": 0.6
-                },
-                "andre@barbearia.com": {
-                    "specialties": ["Corte Feminino", "Luzes", "Escova Progressiva"],
-                    "experience_years": 12,
-                    "bio": "Expert em cortes femininos e técnicas de coloração",
-                    "commission_rate": 0.65
-                },
-                "roberto@barbearia.com": {
-                    "specialties": ["Corte + Barba", "Relaxamento", "Tratamentos"],
-                    "experience_years": 15,
-                    "bio": "Veterano com experiência em todos os tipos de serviços",
-                    "commission_rate": 0.7
-                }
-            }
-            
-            info = barber_data.get(user_data["email"], {})
-            db_barber = Barber(
-                barbershop_id=barbershop_id,
-                user_id=db_user.id,
-                professional_name=user_data["full_name"],
-                bio=info.get("bio", ""),
-                experience_years=info.get("experience_years", 5),
-                specialties=info.get("specialties", []),
-                is_active=True,
-                accepts_appointments=True,
-                commission_rate=info.get("commission_rate", 0.6),
-                phone=user_data["phone"],
-                whatsapp=user_data["phone"],
-                working_hours={
-                    "0": {"start": "08:00", "end": "18:00"},
-                    "1": {"start": "08:00", "end": "18:00"},
-                    "2": {"start": "08:00", "end": "18:00"},
-                    "3": {"start": "08:00", "end": "18:00"},
-                    "4": {"start": "08:00", "end": "18:00"},
-                    "5": {"start": "08:00", "end": "16:00"}
-                }
-            )
-            db.add(db_barber)
-            created_barbers.append(user_data["full_name"])
-    
-    # Criar serviços de teste
-    services_data = [
-        {
-            "name": "Corte Masculino",
-            "description": "Corte clássico masculino com máquina e tesoura",
-            "price": 45.00,
-            "duration_minutes": 30,
-            "category": "corte"
-        },
-        {
-            "name": "Corte Feminino",
-            "description": "Corte feminino personalizado com técnicas modernas",
-            "price": 60.00,
-            "duration_minutes": 45,
-            "category": "corte"
-        },
-        {
-            "name": "Barba Completa",
-            "description": "Aparar, modelar e finalizar a barba",
-            "price": 25.00,
-            "duration_minutes": 20,
-            "category": "barba"
-        },
-        {
-            "name": "Corte + Barba",
-            "description": "Pacote completo: corte de cabelo + barba",
-            "price": 65.00,
-            "duration_minutes": 50,
-            "category": "combo"
-        },
-        {
-            "name": "Degradê",
-            "description": "Corte degradê com transições suaves",
-            "price": 50.00,
-            "duration_minutes": 35,
-            "category": "corte"
-        },
-        {
-            "name": "Luzes",
-            "description": "Aplicação de luzes e mechas",
-            "price": 120.00,
-            "duration_minutes": 90,
-            "category": "coloracao"
-        },
-        {
-            "name": "Escova Progressiva",
-            "description": "Tratamento alisante com escova progressiva",
-            "price": 150.00,
-            "duration_minutes": 120,
-            "category": "tratamento"
-        },
-        {
-            "name": "Relaxamento",
-            "description": "Tratamento relaxante para cabelo e couro cabeludo",
-            "price": 80.00,
-            "duration_minutes": 60,
-            "category": "tratamento"
-        }
-    ]
-    
-    for service_data in services_data:
-        # Verificar se serviço já existe pelo nome
-        existing_service = db.query(Service).filter(Service.name == service_data["name"]).first()
-        if not existing_service:
-            db_service = Service(
-                name=service_data["name"],
-                description=service_data["description"],
-                price=service_data["price"],
-                duration_minutes=service_data["duration_minutes"],
-                category=service_data["category"],
-                is_active=True,
-                barbershop_id=barbershop_id
-            )
-            db.add(db_service)
-            created_services.append(service_data["name"])
     
     db.commit()
     
@@ -996,12 +812,8 @@ async def create_test_data(db: Session = Depends(get_db)):
         "message": "Dados de teste criados com sucesso!",
         "created_users": created_users,
         "skipped_users": skipped_users,
-        "created_barbers": created_barbers,
-        "created_services": created_services,
         "total_created": len(created_users),
         "total_skipped": len(skipped_users),
-        "total_barbers": len(created_barbers),
-        "total_services": len(created_services),
         "login_info": {
             "admin": [
                 "admin@barbeariadodudao.com:dudao123"

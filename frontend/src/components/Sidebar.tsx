@@ -11,172 +11,189 @@ interface SidebarProps {
 
 export default function Sidebar({ className = '' }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [logoError, setLogoError] = useState(true); // Usando ícone ao invés de imagem
+  const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
   const router = useRouter();
 
+  const toggleExpand = (index: number) => {
+    const newExpanded = new Set(expandedItems);
+    if (newExpanded.has(index)) {
+      newExpanded.delete(index);
+    } else {
+      newExpanded.add(index);
+    }
+    setExpandedItems(newExpanded);
+  };
+
+  // Menu otimizado com agrupamentos
   const menuItems = [
     {
-      label: 'Dashboard',
+      label: 'Dashboard/Analytics',
       href: '/admin',
       icon: 'barber-pole',
-      description: 'Visão geral do sistema'
+      submenu: [
+        { label: 'Dashboard', href: '/admin' },
+        { label: 'Analytics', href: '/admin/analytics' }
+      ]
+    },
+    {
+      label: 'Vendas/Comissões',
+      href: '/admin/sales',
+      icon: 'barber-pole',
+      submenu: [
+        { label: 'Vendas', href: '/admin/sales' },
+        { label: 'Comissões', href: '/admin/commissions' }
+      ]
     },
     {
       label: 'Agendamentos',
       href: '/admin/appointments',
-      icon: 'barber-chair',
-      description: 'Gerir agendamentos'
+      icon: 'barber-chair'
     },
     {
       label: 'Clientes',
       href: '/admin/clients',
-      icon: 'comb',
-      description: 'Gestão de clientes'
+      icon: 'comb'
     },
     {
       label: 'Barbeiros',
       href: '/admin/barbers',
-      icon: 'scissors',
-      description: 'Gerir barbeiros'
+      icon: 'scissors'
     },
     {
       label: 'Serviços',
       href: '/admin/services',
-      icon: 'hair-clipper',
-      description: 'Catálogo de serviços'
+      icon: 'hair-clipper'
     },
     {
       label: 'Produtos',
       href: '/admin/products',
-      icon: 'razor',
-      description: 'Gestão de estoque'
-    },
-    {
-      label: 'Vendas',
-      href: '/admin/sales',
-      icon: 'barber-pole',
-      description: 'Sistema POS'
-    },
-    {
-      label: 'Analytics',
-      href: '/admin/analytics',
-      icon: 'logo',
-      description: 'Relatórios e métricas'
+      icon: 'razor'
     },
     {
       label: 'Retenção',
       href: '/admin/retention',
-      icon: 'barber-pole',
-      description: 'Clientes em risco'
-    },
-    {
-      label: 'Comissões',
-      href: '/admin/commissions',
-      icon: 'barber-pole',
-      description: 'Gestão de comissões'
+      icon: 'barber-pole'
     }
-  ];
+  ] as const;
 
   return (
-    <aside className={`bg-gray-900 border-r border-gray-700 transition-all duration-300 ${
-      isCollapsed ? 'w-16' : 'w-64'
-    } ${className}`}>
+    <aside className={`bg-[rgba(255,255,255,0.1)] backdrop-blur-[20px] border-r border-[rgba(255,255,255,0.08)] transition-all duration-300 h-full ${
+      isCollapsed ? 'w-16' : 'w-56'
+    } ${className}`} style={{ WebkitBackdropFilter: 'blur(20px)' }}>
       <div className="flex flex-col h-full">
-        {/* Header */}
-        <div className="p-4 border-b border-gray-700">
+        {/* Header - Compacto com Glassmorphism */}
+        <div className="p-4 border-b border-[rgba(255,255,255,0.08)]">
           <div className="flex items-center justify-between">
             {!isCollapsed && (
               <div className="flex items-center space-x-3">
-                <div className="flex-shrink-0">
-                  {!logoError ? (
-                    <img 
-                      src="/images/logo-dudao.png" 
-                      alt="EliteBarber" 
-                      className="h-10 w-10 object-contain"
-                      onError={() => setLogoError(true)}
-                    />
-                  ) : (
-                    <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 p-2 rounded-lg">
-                      <IconFallback type="barber-pole" size="md" className="text-black" />
-                    </div>
-                  )}
-                </div>
+                <img 
+                  src="/images/logo-dudao.png" 
+                  alt="DUDÃO" 
+                  className="h-10 w-10 object-contain"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                  }}
+                />
                 <div>
-                  <h2 className="text-white font-bold text-lg">EliteBarber</h2>
-                  <p className="text-gray-400 text-xs">Admin Panel</p>
+                  <h2 className="text-white font-bold text-base">DUDÃO</h2>
+                  <p className="text-white/70 text-xs">ADMIN</p>
                 </div>
               </div>
             )}
             {isCollapsed && (
-              <div className="flex justify-center mb-4">
-                {!logoError ? (
-                  <img 
-                    src="/images/logo-dudao.png" 
-                    alt="EliteBarber" 
-                    className="h-8 w-8 object-contain"
-                    onError={() => setLogoError(true)}
-                  />
-                ) : (
-                  <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 p-2 rounded-lg">
-                    <IconFallback type="barber-pole" size="sm" className="text-black" />
-                  </div>
-                )}
+              <div className="flex justify-center w-full">
+                <img 
+                  src="/images/logo-dudao.png" 
+                  alt="DUDÃO" 
+                  className="h-10 w-10 object-contain"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                  }}
+                />
               </div>
             )}
             <button
               onClick={() => setIsCollapsed(!isCollapsed)}
-              className="p-2 rounded-lg bg-gray-800 text-gray-300 hover:text-white hover:bg-gray-700 transition-colors"
-              title={isCollapsed ? "Expandir sidebar" : "Recolher sidebar"}
+              className="p-2 rounded-xl bg-[rgba(255,255,255,0.12)] text-white/80 hover:text-white hover:bg-[rgba(255,255,255,0.2)] transition-all duration-200 text-sm border border-[rgba(255,255,255,0.08)]"
+              title={isCollapsed ? "Expandir" : "Recolher"}
             >
               {isCollapsed ? '→' : '←'}
             </button>
           </div>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto py-4">
-          <ul className="space-y-2 px-3">
-            {menuItems.map((item, index) => (
-              <li key={index}>
-                <Link
-                  href={item.href}
-                  className="group flex items-center space-x-3 px-3 py-3 rounded-lg text-gray-300 hover:text-white hover:bg-gray-800 transition-all duration-200"
-                  title={isCollapsed ? item.label : item.description}
-                >
-                  <div className="flex-shrink-0">
-                    <IconFallback 
-                      type={item.icon as any} 
-                      size="md" 
-                      className="text-yellow-500 group-hover:text-yellow-400 transition-colors" 
-                    />
-                  </div>
-                  {!isCollapsed && (
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{item.label}</p>
-                      <p className="text-gray-500 text-sm truncate">{item.description}</p>
-                    </div>
+        {/* Navigation - Glassmorphism com mais espaçamento */}
+        <nav className="flex-1 overflow-y-auto py-4 px-3">
+          <ul className="space-y-3">
+            {menuItems.map((item, index) => {
+              const hasSubmenu = 'submenu' in item && item.submenu && Array.isArray(item.submenu);
+              const isExpanded = expandedItems.has(index);
+              
+              return (
+                <li key={index}>
+                  {hasSubmenu ? (
+                    <>
+                      <button
+                        onClick={() => !isCollapsed && toggleExpand(index)}
+                        className="group relative flex items-center justify-between w-full px-4 py-3 rounded-2xl text-white/90 hover:text-white hover:bg-[rgba(255,255,255,0.2)] transition-all duration-200 border border-[rgba(255,255,255,0)] hover:border-[rgba(255,255,255,0.1)]"
+                        title={isCollapsed ? item.label : undefined}
+                      >
+                        <div className="flex items-center space-x-3 flex-1 min-w-0">
+                          <IconFallback 
+                            type={item.icon as any} 
+                            size="md" 
+                            className="text-yellow-400 group-hover:text-yellow-300 transition-colors flex-shrink-0" 
+                          />
+                          {!isCollapsed && (
+                            <span className="font-medium text-sm truncate">{item.label}</span>
+                          )}
+                        </div>
+                        {!isCollapsed && (
+                          <span className="text-white/60 text-xs">{isExpanded ? '▼' : '▶'}</span>
+                        )}
+                      </button>
+                      {!isCollapsed && isExpanded && hasSubmenu && item.submenu && (
+                        <ul className="ml-8 mt-2 space-y-2">
+                          {item.submenu.map((sub, subIndex) => (
+                            <li key={subIndex}>
+                              <Link
+                                href={sub.href}
+                                className="flex items-center px-3 py-2 rounded-xl text-white/70 hover:text-white hover:bg-[rgba(255,255,255,0.15)] text-sm transition-all duration-200 border border-[rgba(255,255,255,0)] hover:border-[rgba(255,255,255,0.08)]"
+                              >
+                                <span className="mr-2 text-yellow-400">•</span>
+                                {sub.label}
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </>
+                  ) : (
+                    <Link
+                      href={item.href}
+                      className="group relative flex items-center space-x-3 px-4 py-3 rounded-2xl text-white/90 hover:text-white hover:bg-[rgba(255,255,255,0.2)] transition-all duration-200 border border-[rgba(255,255,255,0)] hover:border-[rgba(255,255,255,0.1)]"
+                      title={isCollapsed ? item.label : undefined}
+                    >
+                      <IconFallback 
+                        type={item.icon as any} 
+                        size="md" 
+                        className="text-yellow-400 group-hover:text-yellow-300 transition-colors flex-shrink-0" 
+                      />
+                      {!isCollapsed && (
+                        <span className="font-medium text-sm truncate">{item.label}</span>
+                      )}
+                    </Link>
                   )}
-                </Link>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
         </nav>
 
-        {/* Footer */}
-        <div className="p-4 border-t border-gray-700">
-          <div className={`mb-3 ${isCollapsed ? 'flex justify-center' : ''}`}>
-            <Link
-              href="/"
-              className={`inline-flex items-center justify-center gap-2 w-full px-3 py-2 rounded-lg bg-gray-800 text-gray-200 hover:bg-gray-700 hover:text-white transition-colors ${
-                isCollapsed ? 'w-10 h-10 p-0' : ''
-              }`}
-              title="Voltar para a página principal"
-            >
-              <IconFallback type="barber-chair" size="sm" className="text-yellow-400" />
-              {!isCollapsed && <span className="text-sm font-medium">Voltar ao site</span>}
-            </Link>
-          </div>
-
+        {/* Footer - Glassmorphism estendido até o fundo */}
+        <div className="mt-auto p-4 border-t border-[rgba(255,255,255,0.08)] space-y-3">
           <div className={`${isCollapsed ? 'flex justify-center' : ''}`}>
             <button
               type="button"
@@ -185,29 +202,27 @@ export default function Sidebar({ className = '' }: SidebarProps) {
                   localStorage.removeItem('token');
                   localStorage.removeItem('user');
                 } catch {}
-                router.push('/admin/login');
+                router.push('/');
               }}
-              className={`inline-flex items-center justify-center gap-2 w-full px-3 py-2 rounded-lg bg-red-600/20 text-red-200 hover:bg-red-600/30 hover:text-white transition-colors ${
-                isCollapsed ? 'w-10 h-10 p-0' : ''
+              className={`inline-flex items-center justify-center gap-2 w-full px-4 py-3 rounded-2xl bg-[rgba(239,68,68,0.2)] text-red-200 hover:bg-[rgba(239,68,68,0.3)] hover:text-white transition-all duration-200 text-sm font-medium border border-[rgba(239,68,68,0.2)] hover:border-[rgba(239,68,68,0.4)] ${
+                isCollapsed ? 'w-12 h-12 p-0' : ''
               }`}
-              title="Sair do admin"
+              title="Sair do admin e voltar para página inicial"
             >
               <IconFallback type="razor" size="sm" className="text-red-300" />
-              {!isCollapsed && <span className="text-sm font-medium">Sair</span>}
+              {!isCollapsed && <span>Sair</span>}
             </button>
           </div>
-
-          {!isCollapsed ? (
-            <div className="text-center">
-              <p className="text-gray-400 text-xs mb-2">Sistema Online</p>
-              <div className="flex items-center justify-center space-x-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-green-400 text-sm font-medium">Conectado</span>
-              </div>
+          
+          {!isCollapsed && (
+            <div className="flex items-center justify-center space-x-2 pt-2">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
+              <span className="text-green-300 text-xs font-medium">Online</span>
             </div>
-          ) : (
-            <div className="flex justify-center">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+          )}
+          {isCollapsed && (
+            <div className="flex justify-center pt-2">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
             </div>
           )}
         </div>

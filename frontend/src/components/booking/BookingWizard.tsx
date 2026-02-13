@@ -53,7 +53,7 @@ export default function BookingWizard({ barbers, services, onClose, onComplete }
   ];
 
   // Calcular totais
-  const selectedServicesData = (Array.isArray(services) ? services : []).filter(s => selectedServices.includes(s.id));
+  const selectedServicesData = services.filter(s => selectedServices.includes(s.id));
   const totalPrice = selectedServicesData.reduce((sum, s) => sum + s.price, 0);
   const totalDuration = selectedServicesData.reduce((sum, s) => sum + s.duration_minutes, 0);
 
@@ -95,7 +95,7 @@ export default function BookingWizard({ barbers, services, onClose, onComplete }
     }).format(value);
   };
 
-  const selectedBarberData = (Array.isArray(barbers) ? barbers : []).find(b => b.id === selectedBarber);
+  const selectedBarberData = barbers.find(b => b.id === selectedBarber);
   const [loading, setLoading] = useState(false);
 
   const handleConfirmBooking = async () => {
@@ -231,7 +231,7 @@ export default function BookingWizard({ barbers, services, onClose, onComplete }
           <div>
             <h2 className="text-lg sm:text-2xl font-bold text-white mb-4 sm:mb-6">Escolha seu Barbeiro</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-              {(Array.isArray(barbers) ? barbers : []).map(barber => (
+              {barbers.map(barber => (
                 <button
                   key={barber.id}
                   onClick={() => setSelectedBarber(barber.id)}
@@ -268,7 +268,7 @@ export default function BookingWizard({ barbers, services, onClose, onComplete }
           <div>
             <h2 className="text-2xl font-bold text-white mb-6">Escolha os Serviços</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {(Array.isArray(services) ? services : []).map(service => (
+              {services.map(service => (
                 <button
                   key={service.id}
                   onClick={() => handleServiceToggle(service.id)}

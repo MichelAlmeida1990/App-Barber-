@@ -6,11 +6,21 @@ const nextConfig = {
    */
   outputFileTracingRoot: __dirname,
   eslint: {
-    // O projeto tem vários avisos/erros de lint legados (ex.: no-explicit-any).
-    // Para não travar o build de produção, ignoramos ESLint durante `next build`.
-    // O lint pode ser executado separadamente via `npm run lint`.
     ignoreDuringBuilds: true,
   },
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.vercel.app https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://*.onrender.com https://*.vercel.app https://*.supabase.co https://*.google.com https://ipapi.co; frame-src 'self' https://*.google.com;"
+          }
+        ]
+      }
+    ]
+  }
 };
 
 module.exports = nextConfig;

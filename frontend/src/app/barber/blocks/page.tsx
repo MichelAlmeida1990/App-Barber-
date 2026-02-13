@@ -234,15 +234,15 @@ export default function BarberBlocksPage() {
   const inactiveBlocks = blocks.filter(b => !b.is_active);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 py-8">
+    <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <button
-                onClick={() => router.push('/barber/dashboard')}
-                className="p-2 text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-lg transition-colors"
+                onClick={() => router.back()}
+                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
                 title="Voltar"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -250,8 +250,8 @@ export default function BarberBlocksPage() {
                 </svg>
               </button>
               <div>
-                <h1 className="text-3xl font-bold text-white">Bloqueios de Agenda</h1>
-                <p className="mt-2 text-sm text-gray-400">
+                <h1 className="text-3xl font-bold text-gray-900">Bloqueios de Agenda</h1>
+                <p className="mt-2 text-sm text-gray-600">
                   Gerencie os períodos em que você não estará disponível
                 </p>
               </div>
@@ -281,14 +281,14 @@ export default function BarberBlocksPage() {
         {!loading && (
           <>
             <div className="mb-8">
-              <h2 className="text-xl font-semibold text-white mb-4">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">
                 Bloqueios Ativos ({activeBlocks.length})
               </h2>
               
               {activeBlocks.length === 0 ? (
-                <div className="bg-gray-800/80 backdrop-blur-sm border border-gray-700 rounded-lg shadow-lg p-6 text-center">
-                  <CalendarIcon className="h-12 w-12 text-gray-500 mx-auto mb-4" />
-                  <p className="text-gray-400">Nenhum bloqueio ativo</p>
+                <div className="bg-white rounded-lg shadow p-6 text-center">
+                  <CalendarIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600">Nenhum bloqueio ativo</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -308,7 +308,7 @@ export default function BarberBlocksPage() {
             {/* Bloqueios Inativos */}
             {inactiveBlocks.length > 0 && (
               <div>
-                <h2 className="text-xl font-semibold text-white mb-4">
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">
                   Bloqueios Inativos ({inactiveBlocks.length})
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -329,14 +329,14 @@ export default function BarberBlocksPage() {
 
         {/* Modal */}
         {showModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-75 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-            <div className="bg-gray-800 border border-gray-700 rounded-lg shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
               <div className="p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold text-white">
+                  <h2 className="text-2xl font-bold text-gray-900">
                     {editingBlock ? 'Editar Bloqueio' : 'Novo Bloqueio'}
                   </h2>
-                  <button onClick={closeModal} className="text-gray-400 hover:text-gray-300">
+                  <button onClick={closeModal} className="text-gray-400 hover:text-gray-600">
                     <XMarkIcon className="h-6 w-6" />
                   </button>
                 </div>
@@ -344,7 +344,7 @@ export default function BarberBlocksPage() {
                 <form onSubmit={handleSubmit} className="space-y-4">
                   {/* Data */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
                       Data *
                     </label>
                     <input
@@ -352,7 +352,7 @@ export default function BarberBlocksPage() {
                       required
                       value={formData.block_date}
                       onChange={(e) => setFormData({...formData, block_date: e.target.value})}
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent placeholder-gray-400"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                     />
                   </div>
 
@@ -363,9 +363,9 @@ export default function BarberBlocksPage() {
                         type="checkbox"
                         checked={formData.all_day}
                         onChange={(e) => setFormData({...formData, all_day: e.target.checked})}
-                        className="rounded text-red-600 focus:ring-red-500 bg-gray-700 border border-gray-600"
+                        className="rounded text-red-600 focus:ring-red-500"
                       />
-                      <span className="text-sm font-medium text-gray-300">Dia inteiro</span>
+                      <span className="text-sm font-medium text-gray-700">Dia inteiro</span>
                     </label>
                   </div>
 
@@ -373,7 +373,7 @@ export default function BarberBlocksPage() {
                   {!formData.all_day && (
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
                           Início *
                         </label>
                         <input
@@ -381,11 +381,11 @@ export default function BarberBlocksPage() {
                           required={!formData.all_day}
                           value={formData.start_time}
                           onChange={(e) => setFormData({...formData, start_time: e.target.value})}
-                          className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent placeholder-gray-400"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
                           Fim *
                         </label>
                         <input
@@ -393,7 +393,7 @@ export default function BarberBlocksPage() {
                           required={!formData.all_day}
                           value={formData.end_time}
                           onChange={(e) => setFormData({...formData, end_time: e.target.value})}
-                          className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent placeholder-gray-400"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                         />
                       </div>
                     </div>
@@ -401,7 +401,7 @@ export default function BarberBlocksPage() {
 
                   {/* Motivo */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
                       Motivo
                     </label>
                     <input
@@ -409,13 +409,13 @@ export default function BarberBlocksPage() {
                       value={formData.reason}
                       onChange={(e) => setFormData({...formData, reason: e.target.value})}
                       placeholder="Ex: Férias, Consulta médica..."
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent placeholder-gray-400"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                     />
                   </div>
 
                   {/* Observações */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
                       Observações
                     </label>
                     <textarea
@@ -423,7 +423,7 @@ export default function BarberBlocksPage() {
                       onChange={(e) => setFormData({...formData, notes: e.target.value})}
                       placeholder="Detalhes adicionais..."
                       rows={3}
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 text-white rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent placeholder-gray-400"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                     />
                   </div>
 
@@ -432,7 +432,7 @@ export default function BarberBlocksPage() {
                     <button
                       type="button"
                       onClick={closeModal}
-                      className="flex-1 px-4 py-2 border border-gray-600 text-gray-300 rounded-lg hover:bg-gray-700 transition-colors"
+                      className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                     >
                       Cancelar
                     </button>
@@ -477,49 +477,47 @@ function BlockCard({
   const isPast = new Date(block.block_date) < new Date();
 
   return (
-    <div className={`bg-gray-800/80 backdrop-blur-sm border border-gray-700 rounded-lg shadow-lg p-6 transition-all ${
-      !block.is_active ? 'opacity-50' : 'hover:bg-gray-800 hover:border-gray-600'
-    }`}>
+    <div className={`bg-white rounded-lg shadow p-6 ${!block.is_active ? 'opacity-60' : ''}`}>
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center space-x-2">
-          <CalendarIcon className="h-5 w-5 text-red-500" />
-          <span className="text-sm font-medium text-white">
+          <CalendarIcon className="h-5 w-5 text-red-600" />
+          <span className="text-sm font-medium text-gray-900">
             {formatDate(block.block_date)}
           </span>
         </div>
         {block.is_active ? (
           <CheckCircleIcon className="h-5 w-5 text-green-500" />
         ) : (
-          <ExclamationCircleIcon className="h-5 w-5 text-gray-500" />
+          <ExclamationCircleIcon className="h-5 w-5 text-gray-400" />
         )}
       </div>
 
       {/* Período */}
       <div className="flex items-center space-x-2 mb-3">
         <ClockIcon className="h-4 w-4 text-gray-400" />
-        <span className="text-sm text-gray-300">{block.formatted_period}</span>
+        <span className="text-sm text-gray-600">{block.formatted_period}</span>
       </div>
 
       {/* Motivo */}
       {block.reason && (
-        <p className="text-sm text-white font-medium mb-2">{block.reason}</p>
+        <p className="text-sm text-gray-900 font-medium mb-2">{block.reason}</p>
       )}
 
       {/* Observações */}
       {block.notes && (
-        <p className="text-xs text-gray-400 mb-4">{block.notes}</p>
+        <p className="text-xs text-gray-600 mb-4">{block.notes}</p>
       )}
 
       {/* Tags */}
       <div className="flex flex-wrap gap-2 mb-4">
         {block.all_day && (
-          <span className="px-2 py-1 text-xs bg-blue-600/30 text-blue-300 border border-blue-500/50 rounded">
+          <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
             Dia inteiro
           </span>
         )}
         {isPast && (
-          <span className="px-2 py-1 text-xs bg-gray-600/30 text-gray-300 border border-gray-500/50 rounded">
+          <span className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded">
             Passado
           </span>
         )}
@@ -529,7 +527,7 @@ function BlockCard({
       <div className="flex gap-2">
         <button
           onClick={() => onEdit(block)}
-          className="flex-1 px-3 py-2 text-sm border border-gray-600 text-gray-300 rounded-lg hover:bg-gray-700 hover:border-gray-500 transition-colors"
+          className="flex-1 px-3 py-2 text-sm border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
         >
           Editar
         </button>
@@ -537,15 +535,15 @@ function BlockCard({
           onClick={() => onToggle(block)}
           className={`flex-1 px-3 py-2 text-sm rounded-lg transition-colors ${
             block.is_active
-              ? 'bg-yellow-600/30 text-yellow-300 border border-yellow-500/50 hover:bg-yellow-600/50'
-              : 'bg-green-600/30 text-green-300 border border-green-500/50 hover:bg-green-600/50'
+              ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+              : 'bg-green-100 text-green-800 hover:bg-green-200'
           }`}
         >
           {block.is_active ? 'Desativar' : 'Ativar'}
         </button>
         <button
           onClick={() => onDelete(block.id)}
-          className="px-3 py-2 text-sm bg-red-600/30 text-red-300 border border-red-500/50 rounded-lg hover:bg-red-600/50 transition-colors"
+          className="px-3 py-2 text-sm bg-red-100 text-red-800 rounded-lg hover:bg-red-200 transition-colors"
         >
           Excluir
         </button>

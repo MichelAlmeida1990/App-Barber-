@@ -19,12 +19,11 @@ from app.api.analytics import router as analytics_router
 from app.api.ai import router as ai_router
 from app.api.commissions import router as commissions_router
 from app.api.barber_blocks import router as barber_blocks_router
-from app.api.service_sessions import router as service_sessions_router
 
 # Importar modelos para garantir que sejam registrados no Base.metadata
 from app.models import (
     User, Barbershop, Barber, Client, Service, 
-    Appointment, Commission, Product, BarberBlock, ServiceSession
+    Appointment, Commission, Product, BarberBlock
 )
 
 # Importar função de inicialização do banco
@@ -92,17 +91,16 @@ if frontend_url:
 # Adicionar domínios Vercel padrão
 allowed_origins.extend([
     "https://app-barber-iota.vercel.app",
-    "https://app-barber-iota-git-main-michelalmeida1990.vercel.app",  # Git branch URLs
 ])
 
-# Log dos origins permitidos para debug
-import logging
-logger = logging.getLogger(__name__)
-logger.info(f"🌐 CORS configurado para: {allowed_origins}")
+# Regex para aceitar subdomínios da Vercel (necessário para deploys de preview)
+# Isso resolve o problema do wildcard "*" que o FastAPI não aceita em allow_origins
+allow_origin_regex = r"https://.*\.vercel\.app"
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
+    allow_origin_regex=allow_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -160,7 +158,6 @@ app.include_router(analytics_router, prefix="/api/v1/analytics", tags=["Analytic
 app.include_router(ai_router, prefix="/api/v1/ai", tags=["Inteligência Artificial"])
 app.include_router(commissions_router, prefix="/api/v1/commissions", tags=["Comissões"])
 app.include_router(barber_blocks_router, prefix="/api/v1/barber-blocks", tags=["Bloqueios de Agenda"])
-app.include_router(service_sessions_router, prefix="/api/v1", tags=["Sessões de Serviço"])
 
 # Evento de startup
 @app.on_event("startup")
