@@ -59,8 +59,11 @@ if poolclass:
         echo=settings.database_echo
     )
 else:
+    # Adicionar log do connect_args para debug no Render
+    logger.info(f"⚙️ Usando connect_args: {connect_args}")
     engine = create_engine(
         DATABASE_URL,
+        connect_args=connect_args,
         echo=settings.database_echo,
         pool_pre_ping=True,  # Verificar conexão antes de usar
         pool_size=5,
