@@ -17,11 +17,19 @@ logger = logging.getLogger(__name__)
 # Usar DATABASE_URL da variável de ambiente, ou SQLite como fallback para desenvolvimento
 DATABASE_URL = settings.database_url or "sqlite:///./barbershop_dev.db"
 
-# Garantir sslmode=require para PostgreSQL (exigido pelo Render e Supabase)
-if DATABASE_URL.startswith("postgresql") and "sslmode" not in DATABASE_URL:
-    separator = "&" if "?" in DATABASE_URL else "?"
-    DATABASE_URL += f"{separator}sslmode=require"
-    # Atualizar o settings também para consistência nos logs
+# Correção para SQLAlchemy 1.4+ (não aceita mais 'postgres://', deve ser 'postgresql://')
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+# Garantir sslmode=require para PostgreSQL (exigido pelo Render Externo e Supabase)
+# Não aplicar para localhost/127.0.0.1
+if DATABASE_URL.startswith("postgresql"):
+    is_local = "localhost" in DATABASE_URL or "127.0.0.1" in DATABASE_URL
+    if not is_local and "sslmode" not in DATABASE_URL:
+        separator = "&" if "?" in DATABASE_URL else "?"
+        DATABASE_URL += f"{separator}sslmode=require"
+    
+    # Atualizar o settings para consistência nos logs
     settings.database_url = DATABASE_URL
 
 # Log para debug
@@ -37,7 +45,9 @@ if DATABASE_URL.startswith("sqlite"):
     connect_args = {"check_same_thread": False}
     poolclass = StaticPool
 else:
-    # PostgreSQL não precisa de connect_args especiais
+    # Para PostgreSQL no Render, às vezes é necessário passar via connect_args explicitamente
+    if "sslmode=require" in DATABASE_URL:
+        connect_args = {"sslmode": "require"}
     poolclass = None
 
 # Criar engine do SQLAlchemy

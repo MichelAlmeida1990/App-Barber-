@@ -17,6 +17,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR" suppressHydrationWarning={true}>
+      <head>
+        <meta
+          http-equiv="Content-Security-Policy"
+          content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.vercel.app https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://*.onrender.com https://*.vercel.app https://*.supabase.co https://*.google.com https://ipapi.co; frame-src 'self' https://*.google.com;"
+        />
+      </head>
       <body className={inter.className} suppressHydrationWarning={true}>
         {children}
         <ClientToaster />
